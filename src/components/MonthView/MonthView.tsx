@@ -55,10 +55,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
           <Text
             style={[
               styles.dayText,
-              { color: isDark ? '#FFFFFF' : '#000000' },
               !day.isCurrentMonth && styles.otherMonthDay,
               isSelected && styles.selectedDayText,
               day.isToday && !isSelected && styles.todayDayText,
+              !isSelected && { color: isDark ? '#FFFFFF' : '#000000' },
             ]}>
             {day.date.getDate()}
           </Text>
