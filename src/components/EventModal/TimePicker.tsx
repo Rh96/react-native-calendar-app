@@ -8,11 +8,11 @@ interface TimePickerProps {
   label: string;
   value: Date;
   onChange: (date: Date) => void;
-  onValidationError?: (error: string) => void;
+  // onValidationError?: (error: string) => void;
 }
 
 export const TimePicker = memo<TimePickerProps>(
-  ({ label, value, onChange, onValidationError }) => {
+  ({ label, value, onChange }) => {
     const theme = useTheme();
     const [showPicker, setShowPicker] = useState(false);
 
@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
 
 
 

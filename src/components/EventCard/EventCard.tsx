@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-  View,
+  // View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  useColorScheme,
+  // useColorScheme,
 } from 'react-native';
 import { CalendarEvent } from '../../types';
 import { formatTime } from '../../utils/dateHelpers';
@@ -20,7 +20,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   onPress,
   style,
 }) => {
-  const isDark = useColorScheme() === 'dark';
+  // const isDark = useColorScheme() === 'dark';
 
   return (
     <TouchableOpacity
@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 });
+
 
 
 

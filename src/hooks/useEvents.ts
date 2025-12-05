@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { CalendarEvent } from '../types';
 import { mockEvents } from '../data/mockEvents';
 import { EventService, InMemoryEventRepository } from '../services/EventService';
