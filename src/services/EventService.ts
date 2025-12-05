@@ -92,6 +92,32 @@ export class InMemoryEventRepository implements IEventRepository {
 export class EventService {
   constructor(private repository: IEventRepository) {}
 
+  /**
+   * Initialize the repository if it supports initialization (e.g., FirebaseEventRepository)
+   * This sets up real-time listeners and initial data loading
+   */
+  async initialize(): Promise<void> {
+    if (
+      this.repository &&
+      typeof (this.repository as any).initialize === 'function'
+    ) {
+      await (this.repository as any).initialize();
+    }
+  }
+
+  /**
+   * Clean up the repository if it supports cleanup (e.g., FirebaseEventRepository)
+   * This removes listeners and frees resources
+   */
+  cleanup(): void {
+    if (
+      this.repository &&
+      typeof (this.repository as any).cleanup === 'function'
+    ) {
+      (this.repository as any).cleanup();
+    }
+  }
+
   getAllEvents(): CalendarEvent[] {
     return this.repository.getAll();
   }

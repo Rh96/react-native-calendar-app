@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, memo } from 'react';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { StatusBar, StyleSheet, useColorScheme, View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MonthView } from './src/components/MonthView';
 import { DayView } from './src/components/DayView/DayView';
@@ -35,7 +35,7 @@ function App() {
 const AppContent = memo(() => {
   const theme = useTheme();
   const calendar = useCalendar();
-  const { events, addEvent, updateEvent, deleteEvent } = useEvents();
+  const { events, loading, error, addEvent, updateEvent, deleteEvent } = useEvents();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>();
@@ -90,6 +90,32 @@ const AppContent = memo(() => {
     setModalVisible(false);
   }, []);
 
+  // Show loading indicator while initializing
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.text }]}>
+          Loading events...
+        </Text>
+      </View>
+    );
+  }
+
+  // Show error message if initialization failed
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+          Error loading events
+        </Text>
+        <Text style={[styles.errorSubtext, { color: theme.colors.text }]}>
+          {error.message}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <TopBar
@@ -138,6 +164,24 @@ AppContent.displayName = 'AppContent';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
 });
 

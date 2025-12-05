@@ -49,8 +49,9 @@ export const EventModal = memo<EventModalProps>(({
       setEndDate(new Date(event.endDate));
     } else if (initialDate) {
       const start = new Date(initialDate);
-      const currentHour = new Date().getHours();
-      start.setHours(currentHour + 1, 0, 0, 0);
+      // Use the hour from initialDate (set by time slot press), not current hour
+      const initialHour = initialDate.getHours();
+      start.setHours(initialHour, 0, 0, 0);
       const end = new Date(start);
       end.setHours(end.getHours() + APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS);
       setStartDate(start);

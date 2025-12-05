@@ -24,6 +24,7 @@ export interface ThemeColors {
   selectedText: string;
   today: string;
   todayText: string;
+  error: string;
   
   // Event colors
   eventColors: string[];
@@ -75,6 +76,7 @@ const lightTheme: Theme = {
     selectedText: '#FFFFFF',
     today: '#4A90E2',
     todayText: '#000000',
+    error: '#E74C3C',
     eventColors: [
       '#4A90E2',
       '#F5A623',
@@ -130,6 +132,7 @@ const darkTheme: Theme = {
     selectedText: '#FFFFFF',
     today: '#4A90E2',
     todayText: '#FFFFFF',
+    error: '#E74C3C',
     eventColors: [
       '#4A90E2',
       '#F5A623',
