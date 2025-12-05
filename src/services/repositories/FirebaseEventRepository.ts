@@ -12,25 +12,39 @@ import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 /**
  * Firebase Firestore implementation of IEventRepository
  * Uses real-time listeners to keep a local cache synchronized
+ * Events are scoped to a specific user
  */
 export class FirebaseEventRepository implements IEventRepository {
   private eventsCache: CalendarEvent[] = [];
   private unsubscribeListener: (() => void) | null = null;
   private isInitialized = false;
   private onChangeCallbacks: Set<() => void> = new Set();
+  private userId: string | null = null;
 
   /**
    * Initialize the repository and set up real-time listener
    * This must be called before using the repository
+   * @param userId - The ID of the user whose events to load
    */
-  async initialize(): Promise<void> {
-    if (this.isInitialized) {
+  async initialize(userId: string): Promise<void> {
+    if (this.isInitialized && this.userId === userId) {
       return;
     }
 
-    // Set up real-time listener
+    // Clean up existing listener if switching users
+    if (this.unsubscribeListener) {
+      this.unsubscribeListener();
+      this.unsubscribeListener = null;
+    }
+
+    this.userId = userId;
+    this.eventsCache = [];
+    this.isInitialized = false;
+
+    // Set up real-time listener filtered by userId
     this.unsubscribeListener = db
       .collection(EVENTS_COLLECTION)
+      .where('userId', '==', userId)
       .onSnapshot(
         (snapshot) => {
           const events: CalendarEvent[] = [];
@@ -65,6 +79,7 @@ export class FirebaseEventRepository implements IEventRepository {
     this.onChangeCallbacks.clear();
     this.isInitialized = false;
     this.eventsCache = [];
+    this.userId = null;
   }
 
   /**
@@ -98,6 +113,10 @@ export class FirebaseEventRepository implements IEventRepository {
    * The real-time listener will update the cache with the actual Firestore document
    */
   add(event: Omit<CalendarEvent, 'id'>): CalendarEvent {
+    if (!this.userId) {
+      throw new Error('Repository not initialized with userId');
+    }
+
     // Generate temporary ID for immediate return
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newEvent: CalendarEvent = {
@@ -106,8 +125,11 @@ export class FirebaseEventRepository implements IEventRepository {
     };
     
     // Fire async operation - listener will update cache with real ID
+    const eventData = eventToFirestore(event);
+    eventData.userId = this.userId; // Add userId to the event data
+    
     db.collection(EVENTS_COLLECTION)
-      .add(eventToFirestore(event))
+      .add(eventData)
       .catch((error) => {
         console.error('Error adding event to Firestore:', error);
       });
