@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "40798737248",
+    "project_id": "react-native-caledar-app",
+    "storage_bucket": "react-native-caledar-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:40798737248:android:162e25faf999e01e78c405",
+        "android_client_info": {
+          "package_name": "com.calendarapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6W3EwS_0RhMX7lZIe6MOMERppW42xW-E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
