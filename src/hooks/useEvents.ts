@@ -1,36 +1,39 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { CalendarEvent } from '../types';
 import { mockEvents } from '../data/mockEvents';
+import { EventService, InMemoryEventRepository } from '../services/EventService';
+
+// Create service instance (Dependency Injection)
+const createEventService = () => {
+  const repository = new InMemoryEventRepository(mockEvents);
+  return new EventService(repository);
+};
 
 export const useEvents = () => {
+  const serviceRef = useRef<EventService>(createEventService());
   const [events, setEvents] = useState<CalendarEvent[]>(mockEvents);
 
   const addEvent = useCallback((event: Omit<CalendarEvent, 'id'>) => {
-    const newEvent: CalendarEvent = {
-      ...event,
-      id: Date.now().toString(),
-    };
-    setEvents((prev) => [...prev, newEvent]);
+    const newEvent = serviceRef.current.createEvent(event);
+    setEvents(serviceRef.current.getAllEvents());
     return newEvent;
   }, []);
 
   const updateEvent = useCallback((id: string, updates: Partial<CalendarEvent>) => {
-    setEvents((prev) =>
-      prev.map((event) =>
-        event.id === id ? { ...event, ...updates } : event
-      )
-    );
+    serviceRef.current.updateEvent(id, updates);
+    setEvents(serviceRef.current.getAllEvents());
   }, []);
 
   const deleteEvent = useCallback((id: string) => {
-    setEvents((prev) => prev.filter((event) => event.id !== id));
+    serviceRef.current.deleteEvent(id);
+    setEvents(serviceRef.current.getAllEvents());
   }, []);
 
   const getEventById = useCallback(
     (id: string) => {
-      return events.find((event) => event.id === id);
+      return serviceRef.current.getEventById(id);
     },
-    [events]
+    []
   );
 
   return {
@@ -41,4 +44,6 @@ export const useEvents = () => {
     getEventById,
   };
 };
+
+
 

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   calculateEventPosition,
   calculateEventHeight,
 } from '../../utils/dateHelpers';
+import { layoutEvents, EventLayout } from '../../utils/eventLayout';
 import { EventCard } from '../EventCard/EventCard';
 
 interface DayViewProps {
@@ -29,7 +30,7 @@ interface DayViewProps {
   onBackToMonth: () => void;
 }
 
-export const DayView: React.FC<DayViewProps> = ({
+export const DayView = React.memo<DayViewProps>(({
   selectedDate,
   events,
   onEventPress,
@@ -42,6 +43,9 @@ export const DayView: React.FC<DayViewProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const dayEvents = getEventsForDay(selectedDate, events);
   const hours = generateHours();
+
+  // Calculate layout for events to handle overlaps
+  const eventLayouts = useMemo(() => layoutEvents(dayEvents), [dayEvents]);
 
   const HOUR_HEIGHT = 60;
 
@@ -58,9 +62,17 @@ export const DayView: React.FC<DayViewProps> = ({
     onTimeSlotPress(newDate);
   };
 
-  const renderEvent = (event: CalendarEvent) => {
+  const renderEvent = (layout: EventLayout) => {
+    const { event, left: leftPercent, width: widthPercent } = layout;
     const top = (calculateEventPosition(event.startDate) * 24 * HOUR_HEIGHT) / 100;
     const height = (calculateEventHeight(event.startDate, event.endDate) * 24 * HOUR_HEIGHT) / 100;
+
+    // Calculate pixel values from percentages
+    // eventsLayer has left: 60 (for hour labels) and right: 0
+    // Available width is screen width - 60, minus padding (8px total: 4px on each side)
+    const availableWidth = width - 60 - 8;
+    const leftPixels = (leftPercent / 100) * availableWidth;
+    const widthPixels = (widthPercent / 100) * availableWidth;
 
     return (
       <View
@@ -70,6 +82,8 @@ export const DayView: React.FC<DayViewProps> = ({
           {
             top,
             height: Math.max(height, 40),
+            left: leftPixels,
+            width: widthPixels,
           },
         ]}>
         <EventCard event={event} onPress={() => onEventPress(event)} />
@@ -170,13 +184,15 @@ export const DayView: React.FC<DayViewProps> = ({
 
           {/* Events Layer */}
           <View style={styles.eventsLayer}>
-            {dayEvents.map((event) => renderEvent(event))}
+            {eventLayouts.map((layout) => renderEvent(layout))}
           </View>
         </View>
       </ScrollView>
     </View>
   );
-};
+});
+
+DayView.displayName = 'DayView';
 
 const { width } = Dimensions.get('window');
 
@@ -252,8 +268,9 @@ const styles = StyleSheet.create({
   },
   eventContainer: {
     position: 'absolute',
-    left: 8,
-    right: 8,
+    paddingHorizontal: 4,
   },
 });
+
+
 

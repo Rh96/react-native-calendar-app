@@ -1,16 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Modal,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { CalendarEvent } from '../../types';
+import { useTheme } from '../../theme';
+import { validateEvent } from '../../utils/validation';
+import { formatDateOnly } from '../../utils/dateHelpers';
+import { EVENT_COLORS } from '../../constants/colors';
+import { APP_CONFIG } from '../../constants/config';
+import { ColorPicker } from './ColorPicker';
+import { TimePicker } from './TimePicker';
+import { styles } from './EventModal.styles';
 
 interface EventModalProps {
   visible: boolean;
@@ -21,18 +27,7 @@ interface EventModalProps {
   initialDate?: Date;
 }
 
-const COLORS = [
-  '#4A90E2',
-  '#F5A623',
-  '#7B61FF',
-  '#50C878',
-  '#E74C3C',
-  '#3498DB',
-  '#E91E63',
-  '#9C27B0',
-];
-
-export const EventModal: React.FC<EventModalProps> = ({
+export const EventModal = memo<EventModalProps>(({
   visible,
   onClose,
   onSave,
@@ -40,9 +35,9 @@ export const EventModal: React.FC<EventModalProps> = ({
   event,
   initialDate,
 }) => {
-  const isDark = useColorScheme() === 'dark';
+  const theme = useTheme();
   const [title, setTitle] = useState('');
-  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
 
@@ -50,44 +45,62 @@ export const EventModal: React.FC<EventModalProps> = ({
     if (event) {
       setTitle(event.title);
       setSelectedColor(event.color);
-      setStartDate(event.startDate);
-      setEndDate(event.endDate);
+      setStartDate(new Date(event.startDate));
+      setEndDate(new Date(event.endDate));
     } else if (initialDate) {
       const start = new Date(initialDate);
-      const end = new Date(initialDate);
-      end.setHours(end.getHours() + 1);
+      const currentHour = new Date().getHours();
+      start.setHours(currentHour + 1, 0, 0, 0);
+      const end = new Date(start);
+      end.setHours(end.getHours() + APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS);
+      setStartDate(start);
+      setEndDate(end);
+    } else {
+      // Reset to defaults when modal closes
+      const now = new Date();
+      const start = new Date(now);
+      start.setHours(now.getHours() + 1, 0, 0, 0);
+      const end = new Date(start);
+      end.setHours(end.getHours() + APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS);
       setStartDate(start);
       setEndDate(end);
     }
   }, [event, initialDate, visible]);
 
-  const handleSave = () => {
-    if (!title.trim()) {
-      Alert.alert('Error', 'Please enter an event title');
-      return;
-    }
+  const handleSave = useCallback(() => {
+    // Combine the date from initialDate/event with the selected times
+    const baseDate = initialDate || (event ? event.startDate : new Date());
+    
+    const finalStartDate = new Date(baseDate);
+    finalStartDate.setHours(startDate.getHours(), startDate.getMinutes(), 0, 0);
 
-    if (endDate <= startDate) {
-      Alert.alert('Error', 'End time must be after start time');
-      return;
-    }
+    const finalEndDate = new Date(baseDate);
+    finalEndDate.setHours(endDate.getHours(), endDate.getMinutes(), 0, 0);
 
-    onSave({
+    const eventData: Omit<CalendarEvent, 'id'> = {
       title: title.trim(),
-      startDate,
-      endDate,
+      startDate: finalStartDate,
+      endDate: finalEndDate,
       color: selectedColor,
-    });
+    };
+
+    const validation = validateEvent(eventData);
+    if (!validation.isValid) {
+      Alert.alert('Error', validation.error || 'Invalid event data');
+      return;
+    }
+
+    onSave(eventData);
     handleClose();
-  };
+  }, [title, startDate, endDate, selectedColor, initialDate, event, onSave]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setTitle('');
-    setSelectedColor(COLORS[0]);
+    setSelectedColor(EVENT_COLORS[0]);
     onClose();
-  };
+  }, [onClose]);
 
-  const handleDeletePress = () => {
+  const handleDeletePress = useCallback(() => {
     Alert.alert(
       'Delete Event',
       'Are you sure you want to delete this event?',
@@ -103,36 +116,39 @@ export const EventModal: React.FC<EventModalProps> = ({
         },
       ]
     );
-  };
+  }, [onDelete, handleClose]);
 
-  const adjustTime = (
-    date: Date,
-    isStart: boolean,
-    amount: number
-  ) => {
-    const newDate = new Date(date);
-    newDate.setMinutes(newDate.getMinutes() + amount);
-    if (isStart) {
-      setStartDate(newDate);
-      if (newDate >= endDate) {
-        const newEnd = new Date(newDate);
-        newEnd.setHours(newEnd.getHours() + 1);
-        setEndDate(newEnd);
-      }
-    } else {
-      setEndDate(newDate);
+  const handleStartTimeChange = useCallback((date: Date) => {
+    // Preserve the date part from initialDate or event
+    const baseDate = initialDate || (event ? event.startDate : new Date());
+    const newStart = new Date(baseDate);
+    newStart.setHours(date.getHours(), date.getMinutes(), 0, 0);
+    setStartDate(newStart);
+    
+    // Adjust end time if needed
+    const currentEnd = new Date(endDate);
+    if (newStart >= currentEnd) {
+      const newEnd = new Date(newStart);
+      newEnd.setHours(newEnd.getHours() + APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS);
+      setEndDate(newEnd);
     }
-  };
+  }, [endDate, initialDate, event]);
 
-  const formatDateTime = (date: Date) => {
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+  const handleEndTimeChange = useCallback((date: Date) => {
+    // Preserve the date part from initialDate or event
+    const baseDate = initialDate || (event ? event.endDate : new Date());
+    const newEnd = new Date(baseDate);
+    newEnd.setHours(date.getHours(), date.getMinutes(), 0, 0);
+    setEndDate(newEnd);
+    
+    // Adjust start time if needed
+    const currentStart = new Date(startDate);
+    if (newEnd <= currentStart) {
+      const newStart = new Date(newEnd);
+      newStart.setHours(newStart.getHours() - APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS);
+      setStartDate(newStart);
+    }
+  }, [startDate, initialDate, event]);
 
   return (
     <Modal
@@ -144,131 +160,73 @@ export const EventModal: React.FC<EventModalProps> = ({
         <View
           style={[
             styles.container,
-            { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF' },
+            { backgroundColor: theme.colors.surface },
           ]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.header}>
-              <Text
-                style={[
-                  styles.headerText,
-                  { color: isDark ? '#FFFFFF' : '#000000' },
-                ]}>
+              <Text style={[styles.headerText, { color: theme.colors.text }]}>
                 {event ? 'Edit Event' : 'New Event'}
               </Text>
             </View>
 
             {/* Title Input */}
             <View style={styles.section}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: isDark ? '#AAAAAA' : '#666666' },
-                ]}>
+              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
                 Title
               </Text>
               <TextInput
                 style={[
                   styles.input,
                   {
-                    backgroundColor: isDark ? '#2C2C2C' : '#F5F5F5',
-                    color: isDark ? '#FFFFFF' : '#000000',
+                    backgroundColor: theme.colors.surfaceSecondary,
+                    color: theme.colors.text,
                   },
                 ]}
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Event title"
-                placeholderTextColor={isDark ? '#666666' : '#999999'}
+                placeholderTextColor={theme.colors.textTertiary}
               />
             </View>
 
-            {/* Start Time */}
-            <View style={styles.section}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: isDark ? '#AAAAAA' : '#666666' },
-                ]}>
-                Start Time
-              </Text>
-              <View style={styles.timeContainer}>
-                <Text
-                  style={[
-                    styles.timeText,
-                    { color: isDark ? '#FFFFFF' : '#000000' },
-                  ]}>
-                  {formatDateTime(startDate)}
+            {/* Date Display - Read Only */}
+            {(initialDate || event) && (
+              <View style={styles.section}>
+                <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
+                  Date
                 </Text>
-                <View style={styles.timeButtons}>
-                  <TouchableOpacity
-                    style={styles.timeButton}
-                    onPress={() => adjustTime(startDate, true, -15)}>
-                    <Text style={styles.timeButtonText}>-15m</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.timeButton}
-                    onPress={() => adjustTime(startDate, true, 15)}>
-                    <Text style={styles.timeButtonText}>+15m</Text>
-                  </TouchableOpacity>
+                <View
+                  style={[
+                    styles.dateDisplay,
+                    { backgroundColor: theme.colors.surfaceSecondary },
+                  ]}>
+                  <Text style={[styles.dateDisplayText, { color: theme.colors.text }]}>
+                    {formatDateOnly(initialDate || startDate)}
+                  </Text>
                 </View>
               </View>
-            </View>
+            )}
+
+            {/* Start Time */}
+            <TimePicker
+              label="Start Time"
+              value={startDate}
+              onChange={handleStartTimeChange}
+            />
 
             {/* End Time */}
-            <View style={styles.section}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: isDark ? '#AAAAAA' : '#666666' },
-                ]}>
-                End Time
-              </Text>
-              <View style={styles.timeContainer}>
-                <Text
-                  style={[
-                    styles.timeText,
-                    { color: isDark ? '#FFFFFF' : '#000000' },
-                  ]}>
-                  {formatDateTime(endDate)}
-                </Text>
-                <View style={styles.timeButtons}>
-                  <TouchableOpacity
-                    style={styles.timeButton}
-                    onPress={() => adjustTime(endDate, false, -15)}>
-                    <Text style={styles.timeButtonText}>-15m</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.timeButton}
-                    onPress={() => adjustTime(endDate, false, 15)}>
-                    <Text style={styles.timeButtonText}>+15m</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+            <TimePicker
+              label="End Time"
+              value={endDate}
+              onChange={handleEndTimeChange}
+            />
 
             {/* Color Picker */}
-            <View style={styles.section}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: isDark ? '#AAAAAA' : '#666666' },
-                ]}>
-                Color
-              </Text>
-              <View style={styles.colorContainer}>
-                {COLORS.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.colorOption,
-                      { backgroundColor: color },
-                      selectedColor === color && styles.colorSelected,
-                    ]}
-                    onPress={() => setSelectedColor(color)}
-                  />
-                ))}
-              </View>
-            </View>
+            <ColorPicker
+              selectedColor={selectedColor}
+              onColorSelect={setSelectedColor}
+            />
 
             {/* Buttons */}
             <View style={styles.buttons}>
@@ -285,7 +243,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 <Text
                   style={[
                     styles.cancelButtonText,
-                    { color: isDark ? '#FFFFFF' : '#000000' },
+                    { color: theme.colors.text },
                   ]}>
                   Cancel
                 </Text>
@@ -301,116 +259,7 @@ export const EventModal: React.FC<EventModalProps> = ({
       </View>
     </Modal>
   );
-};
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  container: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  header: {
-    marginBottom: 20,
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  section: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 16,
-  },
-  timeButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  timeButton: {
-    backgroundColor: '#4A90E2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  timeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  colorContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  colorOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  colorSelected: {
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  buttons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 20,
-  },
-  button: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  deleteButton: {
-    backgroundColor: '#E74C3C',
-    marginRight: 'auto',
-  },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  saveButton: {
-    backgroundColor: '#4A90E2',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
 });
+
+EventModal.displayName = 'EventModal';
 

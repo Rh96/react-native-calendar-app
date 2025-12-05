@@ -63,6 +63,29 @@ export const formatTime = (date: Date): string => {
 };
 
 /**
+ * Format date only (without time)
+ */
+export const formatDateOnly = (date: Date): string => {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+/**
+ * Format time only (without date)
+ */
+export const formatTimeOnly = (date: Date): string => {
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+/**
  * Format time range
  */
 export const formatTimeRange = (start: Date, end: Date): string => {
@@ -218,4 +241,6 @@ export const formatHour = (hour: number): string => {
   if (hour === 12) return '12 PM';
   return `${hour - 12} PM`;
 };
+
+
 
