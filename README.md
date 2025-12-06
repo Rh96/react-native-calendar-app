@@ -4,6 +4,29 @@ This is a new [**React Native**](https://reactnative.dev) project, bootstrapped 
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
+## Firebase Setup
+
+This app uses Firebase for authentication and data storage. You need to configure Firebase credentials before running the app.
+
+### Android Setup
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/)
+2. Select your project (or create a new one)
+3. Click on the Android app icon to add an Android app
+4. Enter your package name: `com.calendarapp`
+5. Download the `google-services.json` file
+6. Place the file in `android/app/google-services.json`
+
+> **Important**: The `google-services.json` file contains sensitive credentials and is not tracked in git. Make sure to add your own Firebase configuration file before building the app.
+
+You can use `android/app/google-services.json.example` as a reference for the file structure.
+
+### iOS Setup (if applicable)
+
+1. In Firebase Console, add an iOS app to your project
+2. Download the `GoogleService-Info.plist` file
+3. Place the file in `ios/GoogleService-Info.plist`
+
 ## Step 1: Start Metro
 
 First, you will need to run **Metro**, the JavaScript build tool for React Native.
