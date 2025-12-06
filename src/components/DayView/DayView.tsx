@@ -93,60 +93,45 @@ export const DayView = React.memo<DayViewProps>(({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Date Navigation */}
       <View
         style={[
-          styles.header,
-          { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF' },
+          styles.dateNavigation,
+          { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF', borderBottomColor: isDark ? '#333333' : '#E0E0E0' },
         ]}>
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={onBackToMonth}
+          style={styles.navButton}
+          onPress={onPrevDay}
           activeOpacity={0.7}>
           <Text
             style={[
-              styles.backButtonText,
-              { color: isDark ? '#4A90E2' : '#4A90E2' },
+              styles.navButtonText,
+              { color: isDark ? '#FFFFFF' : '#000000' },
             ]}>
-            ‹ Month
+            ‹
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.dateNavigation}>
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={onPrevDay}
-            activeOpacity={0.7}>
-            <Text
-              style={[
-                styles.navButtonText,
-                { color: isDark ? '#FFFFFF' : '#000000' },
-              ]}>
-              ‹
-            </Text>
-          </TouchableOpacity>
+        <Text
+          style={[
+            styles.dateText,
+            { color: isDark ? '#FFFFFF' : '#000000' },
+          ]}>
+          {formatFullDate(selectedDate)}
+        </Text>
 
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={onNextDay}
+          activeOpacity={0.7}>
           <Text
             style={[
-              styles.dateText,
+              styles.navButtonText,
               { color: isDark ? '#FFFFFF' : '#000000' },
             ]}>
-            {formatFullDate(selectedDate)}
+            ›
           </Text>
-
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={onNextDay}
-            activeOpacity={0.7}>
-            <Text
-              style={[
-                styles.navButtonText,
-                { color: isDark ? '#FFFFFF' : '#000000' },
-              ]}>
-              ›
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Timeline */}
@@ -200,22 +185,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
   dateNavigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
   },
   navButton: {
     width: 40,
