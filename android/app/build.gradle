@@ -113,6 +113,9 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation platform('com.google.firebase:firebase-bom:34.6.0')
 
+    // Add Firebase Auth explicitly
+    implementation 'com.google.firebase:firebase-auth'
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

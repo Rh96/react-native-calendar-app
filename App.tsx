@@ -12,7 +12,9 @@ import { MonthView } from './src/components/MonthView';
 import { DayView } from './src/components/DayView/DayView';
 import { EventModal } from './src/components/EventModal';
 import { TopBar, TodayButton, ErrorBoundary } from './src/components/shared';
+import { LoginScreen, RegisterScreen } from './src/components/Auth';
 import { ThemeProvider, useTheme } from './src/theme';
+import { AuthProvider, useAuthContext } from './src/contexts/AuthContext';
 import { useCalendar } from './src/hooks/useCalendar';
 import { useEvents } from './src/hooks/useEvents';
 import { CalendarEvent } from './src/types';
@@ -23,10 +25,12 @@ function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ErrorBoundary>
-          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-          <AppContent />
-        </ErrorBoundary>
+        <AuthProvider>
+          <ErrorBoundary>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+            <AppContent />
+          </ErrorBoundary>
+        </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
@@ -34,8 +38,39 @@ function App() {
 
 const AppContent = memo(() => {
   const theme = useTheme();
+  const { user, loading: authLoading } = useAuthContext();
+  const [showRegister, setShowRegister] = useState(false);
+
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.text }]}>
+          Loading...
+        </Text>
+      </View>
+    );
+  }
+
+  // Show auth screens if user is not authenticated
+  if (!user) {
+    return showRegister ? (
+      <RegisterScreen onNavigateToLogin={() => setShowRegister(false)} />
+    ) : (
+      <LoginScreen onNavigateToRegister={() => setShowRegister(true)} />
+    );
+  }
+
+  // User is authenticated, show calendar
+  return <CalendarContent />;
+});
+
+const CalendarContent = memo(() => {
+  const theme = useTheme();
+  const { user } = useAuthContext();
   const calendar = useCalendar();
-  const { events, loading, error, addEvent, updateEvent, deleteEvent } = useEvents();
+  const { events, loading, error, addEvent, updateEvent, deleteEvent } = useEvents(user?.uid || null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>();
@@ -160,6 +195,7 @@ const AppContent = memo(() => {
 });
 
 AppContent.displayName = 'AppContent';
+CalendarContent.displayName = 'CalendarContent';
 
 const styles = StyleSheet.create({
   container: {

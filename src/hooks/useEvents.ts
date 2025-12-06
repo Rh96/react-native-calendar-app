@@ -9,7 +9,7 @@ const createEventService = () => {
   return new EventService(repository);
 };
 
-export const useEvents = () => {
+export const useEvents = (userId: string | null) => {
   const serviceRef = useRef<EventService>(createEventService());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -17,6 +17,12 @@ export const useEvents = () => {
 
   // Initialize Firebase repository and set up real-time listener
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      setEvents([]);
+      return;
+    }
+
     let isMounted = true;
     let unsubscribe: (() => void) | null = null;
 
@@ -24,7 +30,7 @@ export const useEvents = () => {
       try {
         setLoading(true);
         setError(null);
-        await serviceRef.current.initialize();
+        await serviceRef.current.initialize(userId);
         
         // Initial load from cache
         if (isMounted) {
@@ -59,7 +65,7 @@ export const useEvents = () => {
       }
       serviceRef.current.cleanup();
     };
-  }, []);
+  }, [userId]);
 
   const addEvent = useCallback((event: Omit<CalendarEvent, 'id'>) => {
     try {

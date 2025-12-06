@@ -137,7 +137,7 @@ export const EventModal = memo<EventModalProps>(({
 
   const handleEndTimeChange = useCallback((date: Date) => {
     // Preserve the date part from initialDate or event
-    const baseDate = initialDate || (event ? event.endDate : new Date());
+    const baseDate = initialDate || (event ? event.startDate : new Date());
     const newEnd = new Date(baseDate);
     newEnd.setHours(date.getHours(), date.getMinutes(), 0, 0);
     setEndDate(newEnd);

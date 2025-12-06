@@ -95,13 +95,18 @@ export class EventService {
   /**
    * Initialize the repository if it supports initialization (e.g., FirebaseEventRepository)
    * This sets up real-time listeners and initial data loading
+   * @param userId - The ID of the user whose events to load (required for FirebaseEventRepository)
    */
-  async initialize(): Promise<void> {
+  async initialize(userId?: string): Promise<void> {
     if (
       this.repository &&
       typeof (this.repository as any).initialize === 'function'
     ) {
-      await (this.repository as any).initialize();
+      if (userId) {
+        await (this.repository as any).initialize(userId);
+      } else {
+        await (this.repository as any).initialize();
+      }
     }
   }
 
