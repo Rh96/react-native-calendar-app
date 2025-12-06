@@ -1,11 +1,19 @@
-import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../theme';
 import { useAuth } from '../../hooks/useAuth';
 
 export const ProfileScreen = memo(() => {
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, signOut, loading } = useAuth();
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      // Error handling is done in AuthContext
+    }
+  }, [signOut]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -23,9 +31,24 @@ export const ProfileScreen = memo(() => {
             </Text>
           </View>
         )}
-        <Text style={[styles.placeholder, { color: theme.colors.textSecondary }]}>
-          Profile details will be implemented later
-        </Text>
+        <TouchableOpacity
+          style={[
+            styles.button,
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: loading ? 0.6 : 1,
+            },
+          ]}
+          onPress={handleLogout}
+          disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color={theme.colors.primaryText} />
+          ) : (
+            <Text style={[styles.buttonText, { color: theme.colors.primaryText }]}>
+              Log Out
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -57,10 +80,16 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
   },
-  placeholder: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginTop: 20,
+  button: {
+    height: 50,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
