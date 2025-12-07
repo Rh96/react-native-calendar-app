@@ -48,6 +48,9 @@ export const EventModal = memo<EventModalProps>(({
       setStartDate(new Date(event.startDate));
       setEndDate(new Date(event.endDate));
     } else if (initialDate) {
+      // Reset form fields for new event
+      setTitle('');
+      setSelectedColor(EVENT_COLORS[0]);
       const start = new Date(initialDate);
       // Use the hour from initialDate (set by time slot press), not current hour
       const initialHour = initialDate.getHours();
