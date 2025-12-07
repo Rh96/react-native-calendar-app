@@ -56,7 +56,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
             paddingBottom: safeAreaInsets.bottom + 20,
           },
         ]}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>Welcome Back</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]}>Welcome To Calendar App</Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
           Sign in to access your calendar
         </Text>
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
