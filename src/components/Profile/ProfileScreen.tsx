@@ -41,7 +41,10 @@ export const ProfileScreen = memo(() => {
             },
           ]}
           onPress={handleLogout}
-          disabled={submitting}>
+          disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+          accessibilityState={{ disabled: submitting, busy: submitting }}>
           {submitting ? (
             <ActivityIndicator color={theme.colors.primaryText} />
           ) : (

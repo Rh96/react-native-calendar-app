@@ -18,20 +18,26 @@ export const CalendarHeader = memo<CalendarHeaderProps>(
         <TouchableOpacity
           style={styles.navButton}
           onPress={onPrevMonth}
-          activeOpacity={0.7}>
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Previous month">
           <Text style={[styles.navButtonText, { color: theme.colors.text }]}>
             ‹
           </Text>
         </TouchableOpacity>
 
-        <Text style={[styles.monthYearText, { color: theme.colors.text }]}>
+        <Text
+          style={[styles.monthYearText, { color: theme.colors.text }]}
+          accessibilityRole="header">
           {formatMonthYear(currentDate)}
         </Text>
 
         <TouchableOpacity
           style={styles.navButton}
           onPress={onNextMonth}
-          activeOpacity={0.7}>
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Next month">
           <Text style={[styles.navButtonText, { color: theme.colors.text }]}>
             ›
           </Text>

@@ -67,7 +67,8 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onReset }) => {
       )}
       <TouchableOpacity
         style={[styles.button, { backgroundColor: theme.colors.primary }]}
-        onPress={onReset}>
+        onPress={onReset}
+        accessibilityRole="button">
         <Text style={styles.buttonText}>Try Again</Text>
       </TouchableOpacity>
     </View>

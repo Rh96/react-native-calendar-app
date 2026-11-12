@@ -21,7 +21,9 @@ export const ViewToggle = memo<ViewToggleProps>(({ viewMode, onModeChange }) => 
             { backgroundColor: theme.colors.primary },
           ],
         ]}
-        onPress={() => onModeChange('month')}>
+        onPress={() => onModeChange('month')}
+        accessibilityRole="button"
+        accessibilityState={{ selected: viewMode === 'month' }}>
         <Text
           style={[
             styles.buttonText,
@@ -39,7 +41,9 @@ export const ViewToggle = memo<ViewToggleProps>(({ viewMode, onModeChange }) => 
             { backgroundColor: theme.colors.primary },
           ],
         ]}
-        onPress={() => onModeChange('day')}>
+        onPress={() => onModeChange('day')}
+        accessibilityRole="button"
+        accessibilityState={{ selected: viewMode === 'day' }}>
         <Text
           style={[
             styles.buttonText,

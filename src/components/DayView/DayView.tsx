@@ -5,8 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
-  Dimensions,
 } from 'react-native';
 import { CalendarEvent } from '../../types';
 import {
@@ -14,10 +12,9 @@ import {
   generateHours,
   formatHour,
   getEventsForDay,
-  calculateEventPosition,
-  calculateEventHeight,
 } from '../../utils/dateHelpers';
 import { layoutEvents, EventLayout } from '../../utils/eventLayout';
+import { useTheme } from '../../theme';
 import { EventCard } from '../EventCard/EventCard';
 
 interface DayViewProps {
@@ -29,6 +26,17 @@ interface DayViewProps {
   onNextDay: () => void;
 }
 
+const HOUR_HEIGHT = 60;
+const PX_PER_MINUTE = HOUR_HEIGHT / 60; // = 1
+const DAY_HEIGHT = 24 * HOUR_HEIGHT;
+const HOUR_LABEL_WIDTH = 60;
+const MIN_EVENT_HEIGHT = 40; // keeps short events tappable
+const INITIAL_SCROLL_HOUR = 8;
+const HOURS = generateHours();
+
+const minutesSinceMidnight = (date: Date) => date.getHours() * 60 + date.getMinutes();
+const durationInMinutes = (start: Date, end: Date) => (end.getTime() - start.getTime()) / 60_000;
+
 export const DayView = React.memo<DayViewProps>(({
   selectedDate,
   events,
@@ -37,21 +45,23 @@ export const DayView = React.memo<DayViewProps>(({
   onPrevDay,
   onNextDay,
 }) => {
-  const isDark = useColorScheme() === 'dark';
+  const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
-  const dayEvents = getEventsForDay(selectedDate, events);
-  const hours = generateHours();
 
-  // Calculate layout for events to handle overlaps
+  const dayEvents = useMemo(
+    () => getEventsForDay(selectedDate, events),
+    [selectedDate, events],
+  );
+  // Columns for overlapping events
   const eventLayouts = useMemo(() => layoutEvents(dayEvents), [dayEvents]);
 
-  const HOUR_HEIGHT = 60;
-
   useEffect(() => {
-    // Scroll to 8 AM on mount
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({ y: 8 * HOUR_HEIGHT, animated: false });
+    // Scroll to 8 AM whenever the day changes. Deferred so the ScrollView has
+    // laid out its content first.
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: INITIAL_SCROLL_HOUR * HOUR_HEIGHT, animated: false });
     }, 100);
+    return () => clearTimeout(timer);
   }, [selectedDate]);
 
   const handleTimeSlotPress = (hour: number) => {
@@ -60,28 +70,23 @@ export const DayView = React.memo<DayViewProps>(({
     onTimeSlotPress(newDate);
   };
 
-  const renderEvent = (layout: EventLayout) => {
-    const { event, left: leftPercent, width: widthPercent } = layout;
-    const top = (calculateEventPosition(event.startDate) * 24 * HOUR_HEIGHT) / 100;
-    const height = (calculateEventHeight(event.startDate, event.endDate) * 24 * HOUR_HEIGHT) / 100;
-
-    // Calculate pixel values from percentages
-    // eventsLayer has left: 60 (for hour labels) and right: 0
-    // Available width is screen width - 60, minus padding (8px total: 4px on each side)
-    const availableWidth = width - 60 - 8;
-    const leftPixels = (leftPercent / 100) * availableWidth;
-    const widthPixels = (widthPercent / 100) * availableWidth;
+  const renderEvent = ({ event, left, width }: EventLayout) => {
+    const top = minutesSinceMidnight(event.startDate) * PX_PER_MINUTE;
+    const height = durationInMinutes(event.startDate, event.endDate) * PX_PER_MINUTE;
 
     return (
       <View
         key={event.id}
+        testID={`event-${event.id}`}
         style={[
           styles.eventContainer,
           {
             top,
-            height: Math.max(height, 40),
-            left: leftPixels,
-            width: widthPixels,
+            height: Math.max(height, MIN_EVENT_HEIGHT),
+            // Percentages of the events layer, not pixels from the screen
+            // width, so rotation and split screen need no recalculation.
+            left: `${left}%`,
+            width: `${width}%`,
           },
         ]}>
         <EventCard event={event} onPress={() => onEventPress(event)} />
@@ -95,40 +100,28 @@ export const DayView = React.memo<DayViewProps>(({
       <View
         style={[
           styles.dateNavigation,
-          { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF', borderBottomColor: isDark ? '#333333' : '#E0E0E0' },
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
         ]}>
         <TouchableOpacity
           style={styles.navButton}
           onPress={onPrevDay}
-          activeOpacity={0.7}>
-          <Text
-            style={[
-              styles.navButtonText,
-              { color: isDark ? '#FFFFFF' : '#000000' },
-            ]}>
-            ‹
-          </Text>
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Previous day">
+          <Text style={[styles.navButtonText, { color: colors.text }]}>‹</Text>
         </TouchableOpacity>
 
-        <Text
-          style={[
-            styles.dateText,
-            { color: isDark ? '#FFFFFF' : '#000000' },
-          ]}>
+        <Text style={[styles.dateText, { color: colors.text }]} accessibilityRole="header">
           {formatFullDate(selectedDate)}
         </Text>
 
         <TouchableOpacity
           style={styles.navButton}
           onPress={onNextDay}
-          activeOpacity={0.7}>
-          <Text
-            style={[
-              styles.navButtonText,
-              { color: isDark ? '#FFFFFF' : '#000000' },
-            ]}>
-            ›
-          </Text>
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Next day">
+          <Text style={[styles.navButtonText, { color: colors.text }]}>›</Text>
         </TouchableOpacity>
       </View>
 
@@ -138,36 +131,26 @@ export const DayView = React.memo<DayViewProps>(({
         style={styles.scrollView}
         showsVerticalScrollIndicator={true}>
         <View style={styles.timeline}>
-          {hours.map((hour) => (
+          {HOURS.map((hour) => (
             <TouchableOpacity
               key={hour}
-              style={[
-                styles.hourRow,
-                { height: HOUR_HEIGHT },
-              ]}
+              style={styles.hourRow}
               onPress={() => handleTimeSlotPress(hour)}
-              activeOpacity={0.7}>
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Create event at ${formatHour(hour)}`}>
               <View style={styles.hourLabelContainer}>
-                <Text
-                  style={[
-                    styles.hourLabel,
-                    { color: isDark ? '#AAAAAA' : '#666666' },
-                  ]}>
+                <Text style={[styles.hourLabel, { color: colors.textSecondary }]}>
                   {formatHour(hour)}
                 </Text>
               </View>
-              <View
-                style={[
-                  styles.hourLine,
-                  { borderColor: isDark ? '#333333' : '#E0E0E0' },
-                ]}
-              />
+              <View style={[styles.hourLine, { borderColor: colors.border }]} />
             </TouchableOpacity>
           ))}
 
           {/* Events Layer */}
           <View style={styles.eventsLayer}>
-            {eventLayouts.map((layout) => renderEvent(layout))}
+            {eventLayouts.map(renderEvent)}
           </View>
         </View>
       </ScrollView>
@@ -176,8 +159,6 @@ export const DayView = React.memo<DayViewProps>(({
 });
 
 DayView.displayName = 'DayView';
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -216,9 +197,10 @@ const styles = StyleSheet.create({
   hourRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    height: HOUR_HEIGHT,
   },
   hourLabelContainer: {
-    width: 60,
+    width: HOUR_LABEL_WIDTH,
     paddingTop: 4,
     paddingRight: 8,
     alignItems: 'flex-end',
@@ -235,15 +217,13 @@ const styles = StyleSheet.create({
   eventsLayer: {
     position: 'absolute',
     top: 0,
-    left: 60,
+    left: HOUR_LABEL_WIDTH,
     right: 0,
-    height: 24 * 60, // 24 hours
+    height: DAY_HEIGHT,
   },
   eventContainer: {
     position: 'absolute',
+    // Inner padding = 8 px gap between side-by-side events
     paddingHorizontal: 4,
   },
 });
-
-
-

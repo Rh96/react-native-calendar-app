@@ -1,12 +1,29 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { CalendarState, ViewMode } from '../types';
 import { addMonths, addDays } from '../utils/dateHelpers';
 
+/**
+ * Calendar view state.
+ *
+ * - `currentDate`: which month the month grid shows.
+ * - `selectedDate`: which day is selected (and shown in day view).
+ *
+ * Changing the selected day also moves the grid to that day's month, so
+ * switching back to Month never shows a month without the selected day.
+ * Paging months only moves the grid; the selected day stays where it was.
+ */
+
+/** Select `date` and bring the month grid along with it. */
+const selectDay = (prev: CalendarState, date: Date): CalendarState => ({
+  ...prev,
+  selectedDate: date,
+  currentDate: date,
+});
+
 export const useCalendar = () => {
-  const [state, setState] = useState<CalendarState>({
-    currentDate: new Date(),
-    selectedDate: new Date(),
-    viewMode: 'month',
+  const [state, setState] = useState<CalendarState>(() => {
+    const now = new Date();
+    return { currentDate: now, selectedDate: now, viewMode: 'month' };
   });
 
   const setViewMode = useCallback((mode: ViewMode) => {
@@ -14,60 +31,42 @@ export const useCalendar = () => {
   }, []);
 
   const selectDate = useCallback((date: Date) => {
-    setState((prev) => ({ ...prev, selectedDate: date }));
+    setState((prev) => selectDay(prev, date));
   }, []);
 
   const goToNextMonth = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentDate: addMonths(prev.currentDate, 1),
-    }));
+    setState((prev) => ({ ...prev, currentDate: addMonths(prev.currentDate, 1) }));
   }, []);
 
   const goToPrevMonth = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentDate: addMonths(prev.currentDate, -1),
-    }));
+    setState((prev) => ({ ...prev, currentDate: addMonths(prev.currentDate, -1) }));
   }, []);
 
   const goToNextDay = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      selectedDate: addDays(prev.selectedDate, 1),
-    }));
+    setState((prev) => selectDay(prev, addDays(prev.selectedDate, 1)));
   }, []);
 
   const goToPrevDay = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      selectedDate: addDays(prev.selectedDate, -1),
-    }));
+    setState((prev) => selectDay(prev, addDays(prev.selectedDate, -1)));
   }, []);
 
   const goToToday = useCallback(() => {
-    const today = new Date();
-    setState((prev) => ({
-      ...prev,
-      currentDate: today,
-      selectedDate: today,
-    }));
+    setState((prev) => selectDay(prev, new Date()));
   }, []);
 
-  return {
-    ...state,
-    setViewMode,
-    selectDate,
-    goToNextMonth,
-    goToPrevMonth,
-    goToNextDay,
-    goToPrevDay,
-    goToToday,
-  };
+  // Same object between renders unless state changed, so consumers' memo and
+  // useCallback dependencies on it actually work. Callbacks are already stable.
+  return useMemo(
+    () => ({
+      ...state,
+      setViewMode,
+      selectDate,
+      goToNextMonth,
+      goToPrevMonth,
+      goToNextDay,
+      goToPrevDay,
+      goToToday,
+    }),
+    [state, setViewMode, selectDate, goToNextMonth, goToPrevMonth, goToNextDay, goToPrevDay, goToToday],
+  );
 };
-
-
-
-
-
-

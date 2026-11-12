@@ -1,5 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+// `/static` embeds the icon font at build time (no runtime font loading).
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { useTheme } from '../theme';
 import { CalendarScreen } from '../components/Calendar';
 import { ProfileScreen } from '../components/Profile';
@@ -12,21 +14,39 @@ export type RootTabParamList = {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
+interface TabIconProps {
+  focused: boolean;
+  color: string;
+  size: number;
+}
+
+// Defined outside the component so React sees the same component type on
+// every render (no remounting of headers/icons).
+const renderHeader = () => <Header />;
+
+const renderCalendarIcon = ({ focused, color, size }: TabIconProps) => (
+  <MaterialDesignIcons
+    name={focused ? 'calendar-month' : 'calendar-month-outline'}
+    color={color}
+    size={size}
+  />
+);
+
+const renderProfileIcon = ({ focused, color, size }: TabIconProps) => (
+  <MaterialDesignIcons
+    name={focused ? 'account-circle' : 'account-circle-outline'}
+    color={color}
+    size={size}
+  />
+);
+
 export const AppNavigator = () => {
   const theme = useTheme();
 
   return (
     <Tab.Navigator
       screenOptions={{
-        header: ({ route, navigation }) => {
-          const showBackButton = route.name === 'Profile';
-          return (
-            <Header
-              showBackButton={showBackButton}
-              onBackPress={() => navigation.navigate('Calendar')}
-            />
-          );
-        },
+        header: renderHeader,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
@@ -44,7 +64,8 @@ export const AppNavigator = () => {
         component={CalendarScreen}
         options={{
           tabBarLabel: 'Calendar',
-          headerShown: false, // We'll handle header in CalendarScreen
+          tabBarIcon: renderCalendarIcon,
+          headerShown: false, // CalendarScreen renders its own header
         }}
       />
       <Tab.Screen
@@ -52,9 +73,9 @@ export const AppNavigator = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
+          tabBarIcon: renderProfileIcon,
         }}
       />
     </Tab.Navigator>
   );
 };
-

@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme';
-import { EVENT_COLORS } from '../../constants/colors';
+import { EVENT_COLORS, EVENT_COLOR_NAMES } from '../../constants/colors';
 
 interface ColorPickerProps {
   selectedColor: string;
@@ -17,7 +17,7 @@ export const ColorPicker = memo<ColorPickerProps>(
         <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
           Color
         </Text>
-        <View style={styles.colorContainer}>
+        <View style={styles.colorContainer} accessibilityRole="radiogroup">
           {EVENT_COLORS.map((color) => (
             <TouchableOpacity
               key={color}
@@ -27,6 +27,9 @@ export const ColorPicker = memo<ColorPickerProps>(
                 selectedColor === color && styles.colorSelected,
               ]}
               onPress={() => onColorSelect(color)}
+              accessibilityRole="radio"
+              accessibilityLabel={EVENT_COLOR_NAMES[color] ?? color}
+              accessibilityState={{ checked: selectedColor === color }}
             />
           ))}
         </View>

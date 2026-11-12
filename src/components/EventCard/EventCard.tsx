@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-  // View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  // useColorScheme,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { CalendarEvent } from '../../types';
 import { formatTime } from '../../utils/dateHelpers';
@@ -12,7 +12,7 @@ import { formatTime } from '../../utils/dateHelpers';
 interface EventCardProps {
   event: CalendarEvent;
   onPress?: () => void;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const EventCard: React.FC<EventCardProps> = ({
@@ -20,7 +20,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   onPress,
   style,
 }) => {
-  // const isDark = useColorScheme() === 'dark';
+  const timeRange = `${formatTime(event.startDate)} to ${formatTime(event.endDate)}`;
 
   return (
     <TouchableOpacity
@@ -30,7 +30,10 @@ export const EventCard: React.FC<EventCardProps> = ({
         style,
       ]}
       onPress={onPress}
-      activeOpacity={0.7}>
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${event.title}, ${timeRange}`}
+      accessibilityHint="Opens the event to edit">
       <Text style={styles.title} numberOfLines={1}>
         {event.title}
       </Text>
