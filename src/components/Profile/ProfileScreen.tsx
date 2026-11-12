@@ -1,11 +1,13 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useTheme } from '../../theme';
 import { useAuth } from '../../hooks/useAuth';
+import { useLockSetting } from '../../hooks/useLockSetting';
 
 export const ProfileScreen = memo(() => {
   const theme = useTheme();
   const { user, signOut, submitting } = useAuth();
+  const lock = useLockSetting(user?.uid ?? null);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -32,6 +34,42 @@ export const ProfileScreen = memo(() => {
             </Text>
           </View>
         )}
+
+        <View style={[styles.settingRow, { borderColor: theme.colors.border }]}>
+          <View style={styles.settingText}>
+            <Text style={[styles.settingTitle, { color: theme.colors.text }]}>
+              Biometric lock
+            </Text>
+            <Text style={[styles.settingHelp, { color: theme.colors.textSecondary }]}>
+              {lock.available || lock.enabled
+                ? 'Ask for your fingerprint or face when the app opens.'
+                : "Set up fingerprint or face unlock in your phone's settings to use this."}
+            </Text>
+          </View>
+          {lock.loading || lock.saving ? (
+            <ActivityIndicator color={theme.colors.primary} accessibilityLabel="Updating biometric lock" />
+          ) : (
+            <Switch
+              value={lock.enabled}
+              onValueChange={lock.setLock}
+              disabled={!lock.canToggle}
+              trackColor={{ true: theme.colors.primary, false: theme.colors.border }}
+              accessibilityLabel="Biometric lock"
+              // RN only derives this from `disabled` on Android; set it for both platforms
+              accessibilityState={{ disabled: !lock.canToggle }}
+              accessibilityHint="Requires your fingerprint or face to open the app"
+            />
+          )}
+        </View>
+        {lock.error && (
+          <Text
+            style={[styles.settingError, { color: theme.colors.error }]}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite">
+            {lock.error}
+          </Text>
+        )}
+
         <TouchableOpacity
           style={[
             styles.button,
@@ -83,6 +121,29 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 16,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  settingText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  settingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  settingHelp: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  settingError: {
+    fontSize: 14,
+    marginTop: 8,
   },
   button: {
     height: 50,
