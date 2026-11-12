@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+# Read-only token: this workflow only checks code, it never writes to the repo
+permissions:
+  contents: read
+
+# A new push to the same branch/PR cancels the older run
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, lint, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Exact install from package-lock.json (fails if it's out of sync)
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+      # Jest pins TZ=Europe/Berlin itself (jest.config.js), so dates behave like locally
+      - run: npm test -- --ci
+
+  rules:
+    name: Firestore security rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # The Firestore emulator (firebase-tools 15) needs Java 21+.
+      # Pinned to a release more than two weeks old.
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - run: npm ci
+
+      # Starts the emulator with a demo-* project (fully offline, no secrets)
+      - run: npm run test:rules

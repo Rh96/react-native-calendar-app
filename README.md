@@ -1,261 +1,142 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Calendar App
 
-# Getting Started
+[![CI](https://github.com/Rh96/react-native-calendar-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Rh96/react-native-calendar-app/actions/workflows/ci.yml)
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+A personal calendar for Android built with React Native and Firebase. It has month and day views, real-time sync that keeps working offline, side-by-side layout for overlapping events, and an optional biometric lock that never stores your password.
 
-## Prerequisites
+## Features
 
-Before setting up this project, ensure you have the following software installed with the specified versions:
+- **Month view**: 6-week grid with up to three colour dots per day and a highlighted today and selected day.
+- **Day view**: hourly timeline (1 px per minute). Overlapping events sit side by side in columns; tap an empty hour to create an event there.
+- **Create, edit, delete events**: title, start and end time, and one of eight colours, with validation.
+- **Real-time and offline**: changes appear instantly and sync when you're back online. Failed saves are reported, never silently lost.
+- **Private by design**: Firestore security rules allow each user to read and write only their own events.
+- **Biometric lock** (optional): fingerprint or face required to open a saved session. Turned on from Profile.
+- **Accessible**: every control has a role and spoken label for TalkBack (e.g. "Thursday, November 12, 2026, today, 2 events").
+- **Light and dark theme** following the system setting.
 
-### Core Development Tools
+<!--
+## Screenshots
 
-- **Node.js**: >=18.0.0 (see [Node.js installation guide](https://nodejs.org/))
-- **npm** or **yarn**: Latest stable version
-- **TypeScript**: ^5.8.3
+| Month | Day | New event | Lock |
+|---|---|---|---|
+| ![Month view](screenshots/month.png) | ![Day view](screenshots/day.png) | ![New event](screenshots/new-event.png) | ![Biometric lock](screenshots/lock.png) |
+-->
 
-### React Native Stack
+## Tech stack
 
-- **React Native**: 0.81.0
-- **React**: 19.1.0
-- **Metro Bundler**: Included with React Native
+| Area | Choice |
+|---|---|
+| App | React Native 0.81 (bare CLI), React 19, TypeScript (strict) |
+| Navigation | React Navigation 7 (bottom tabs) |
+| Backend | Firebase Authentication (email/password) and Cloud Firestore |
+| Device | `react-native-biometrics`, `react-native-keychain`, Material Design Icons |
+| Testing | Jest and React Native Testing Library (138 app tests), Firebase emulator (22 security rules tests) |
+| CI | GitHub Actions: typecheck, lint and test on every PR |
 
-### Android Development
+## Architecture and key decisions
 
-- **Android Studio**: Latest stable version (see [Android Studio download](https://developer.android.com/studio))
-- **Android SDK**:
-  - Minimum SDK: 24 (Android 7.0 Nougat)
-  - Target SDK: 36
-  - Compile SDK: 36
-  - Build Tools: 36.0.0
-- **Gradle**: 8.14.3
-- **Kotlin**: 2.1.20
-- **NDK**: 27.1.12297006
-- **Android Gradle Plugin**: Compatible with Gradle 8.14.3
-- **Java Development Kit (JDK)**: Version compatible with React Native 0.81.0 (typically JDK 17 or 21)
-
-### iOS Development (if applicable)
-
-- **macOS**: Required for iOS development
-- **Xcode**: Latest stable version (see [Xcode download](https://developer.apple.com/xcode/))
-- **iOS Deployment Target**: 15.1
-- **CocoaPods**: >= 1.13, != 1.15.0, != 1.15.1
-- **Ruby**: >= 2.6.10
-
-### Firebase
-
-- **Firebase Android SDK**: 34.6.0 (BOM)
-- **Firebase iOS SDK**: Managed via CocoaPods
-- **@react-native-firebase packages**: ^23.5.0
-  - @react-native-firebase/app: ^23.5.0
-  - @react-native-firebase/auth: ^23.5.0
-  - @react-native-firebase/firestore: ^23.5.0
-
-### Verifying Your Installation
-
-Before proceeding, verify that you have the correct versions installed:
-
-```sh
-# Check Node.js version
-node --version
-
-# Check npm version
-npm --version
-# OR check yarn version
-yarn --version
-
-# Check Java version (for Android)
-java -version
-
-# Check ADB version (Android Debug Bridge)
-adb version
-
-# Check Gradle version (if installed globally)
-gradle --version
+```
+Firebase Auth ──▶ AuthContext ──▶ App gate: session check → login → biometric lock → tabs
+Firestore ──onSnapshot──▶ eventsApi ──▶ useEvents ──▶ Month / Day views ─▶ Event modal ─▶ writes
 ```
 
-## Firebase Setup
+1. **A thin async data layer, no repository classes.** All Firestore access lives in one module of plain async functions ([`eventsApi.ts`](src/services/eventsApi.ts)). An earlier synchronous repository interface over an async database forced fire-and-forget writes, so save failures were silent. Firestore already provides caching, offline writes and live updates, so the extra layer added risk without benefit.
+2. **Security rules are the real backend.** There is no server code. The app's `where('userId', '==', uid)` query is a convenience; [`firestore.rules`](firestore.rules) is what enforces ownership and validates every event (title length, `end > start`, colour format, no extra fields).
+3. **Biometrics lock a session; they never store a password.** The lock gates the session Firebase already keeps on the device. Only a per-user "lock enabled" flag is stored in the keychain. It fails closed: if the setting can't be read or biometrics were removed, the app stays locked and offers a password sign-in instead.
+4. **Instant UI, honest errors.** Saving closes the event modal immediately (Firestore shows the change locally and syncs later, even offline). If the server rejects the write, Firestore rolls it back and the user gets an alert naming the event.
+5. **Impossible states made impossible.** The event modal's state is a single TypeScript discriminated union (`create` with a date | `edit` with an event). An earlier version used two optional props that could contradict each other, and events moved to the wrong day. Each bug fix started with a failing test.
 
-This app uses Firebase for authentication and data storage. The following Firebase services are integrated:
+## Getting started
 
-- **Firebase Authentication** (@react-native-firebase/auth: ^23.5.0)
-- **Cloud Firestore** (@react-native-firebase/firestore: ^23.5.0)
-- **Firebase App** (@react-native-firebase/app: ^23.5.0)
+### Prerequisites
 
-You need to configure Firebase credentials before running the app. The native Firebase SDK versions are managed automatically:
-- **Android**: Firebase BOM 34.6.0 (see `android/app/build.gradle`)
-- **iOS**: Managed via CocoaPods
+- Node.js 22 (see [`.nvmrc`](.nvmrc)) and npm
+- JDK 17, Android Studio with Android SDK 36 (minimum supported device: Android 7.0 / API 24)
+- JDK 21 *only for the security rules tests*: the Firestore emulator requires it. Install it alongside 17; `npm run test:rules` finds it automatically, so your default Java (and Android builds) stays on 17
+- A Firebase project (free tier is enough)
 
-### Android Setup
+Follow the official [React Native environment setup](https://reactnative.dev/docs/set-up-your-environment) for Android first.
 
-1. Go to the [Firebase Console](https://console.firebase.google.com/)
-2. Select your project (or create a new one)
-3. Click on the Android app icon to add an Android app
-4. Enter your package name: `com.calendarapp`
-5. Download the `google-services.json` file
-6. Place the file in `android/app/google-services.json`
+### 1. Install
 
-> **Important**: The `google-services.json` file contains sensitive credentials and is not tracked in git. Make sure to add your own Firebase configuration file before building the app.
+```sh
+npm install
+```
 
-You can use `android/app/google-services.json.example` as a reference for the file structure.
+### 2. Connect your Firebase project
 
-> **Note**: The Google Services Gradle plugin (version 4.4.4) is already configured in the project. The `google-services.json` file will be automatically processed during the build.
+1. In the [Firebase Console](https://console.firebase.google.com/), create a project and enable **Authentication → Email/Password** and **Cloud Firestore**.
+2. Add an Android app with package name `com.calendarapp`, download `google-services.json` and place it at `android/app/google-services.json`. It's project-specific and kept out of git; see `android/app/google-services.json.example` for the shape.
+3. Deploy the security rules:
 
-### iOS Setup (if applicable)
-
-1. In Firebase Console, add an iOS app to your project
-2. Download the `GoogleService-Info.plist` file
-3. Place the file in `ios/GoogleService-Info.plist`
-4. After adding the file, run:
    ```sh
-   cd ios
-   bundle exec pod install
-   cd ..
+   npx firebase-tools login
+   npx firebase-tools deploy --only firestore:rules --project <your-firebase-project-id>
    ```
 
-> **Note**: Make sure you have completed the iOS prerequisites (CocoaPods, Ruby) before setting up Firebase for iOS.
+   Your project ID is `project_info.project_id` in `google-services.json`.
 
-### Firestore Security Rules
+### 3. Run on Android
 
-Security rules live in [`firestore.rules`](firestore.rules). Each user can only read and write their own events, and new events are validated (title length, `endDate > startDate`, colour format). Deploy them to your project after any change:
-
-```sh
-npx firebase-tools login            # once
-npx firebase-tools deploy --only firestore:rules --project <your-firebase-project-id>
-```
-
-Your project ID is `project_info.project_id` in `android/app/google-services.json`.
-
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+Start Metro, then build and install the app on an emulator or a USB-connected device with USB debugging enabled:
 
 ```sh
-# Using npm
 npm start
-
-# OR using Yarn
-yarn start
+npm run android   # in a second terminal
 ```
 
-## Step 2: Build and run your app
+<details>
+<summary>Device not showing up?</summary>
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+- Run `adb devices`. If the device shows as `unauthorized`, accept the USB debugging prompt on the phone.
+- Try another cable or port, or revoke USB debugging authorizations in Developer Options and reconnect.
+- Make sure Android SDK Platform Tools are on your `PATH`.
 
-### Android
+</details>
 
-#### Running on Android Emulator
+## Scripts and testing
 
-```sh
-# Using npm
-npm run android
+| Command | What it does |
+|---|---|
+| `npm test` | Jest test suite (app) |
+| `npm run test:rules` | Firestore security rules tests in the local emulator (needs JDK 21) |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run lint` | ESLint |
+| `npm start` / `npm run android` | Metro / build and run on Android |
 
-# OR using Yarn
-yarn android
+The **security rules** have their own suite ([`rules-tests/`](rules-tests/firestore.rules.test.ts)) that runs the real `firestore.rules` in the Firestore emulator with an offline `demo-` project. It covers ownership of reads, writes and deletes, the "rules are not filters" query behaviour, and every validation (title, dates, colour, unknown fields, ownership transfer, merged updates).
+
+The app tests cover the pure calendar logic (overlap columns, the month grid including leap years and daylight-saving changes, validation), hooks (events, calendar state, biometric lock), and full user flows through the real app with only native modules mocked. They query the UI by accessible role and name, the way a screen reader sees it.
+
+Test setup worth knowing:
+
+- Jest runs in a fixed time zone with daylight saving (`Europe/Berlin`), so date tests behave the same locally and in CI (which runs in UTC).
+- Any unexpected `console.error`/`console.warn` fails the test, so React warnings can't pile up unnoticed.
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs two jobs on every pull request and push to `main` and `dev`: typecheck, lint and app tests, and the security rules tests against the emulator. No secrets are needed.
+
+## Project structure
+
+```
+App.tsx                  Providers and the app gate (session → login → lock → tabs)
+src/
+  components/            Screens and UI: MonthView, DayView, EventModal, Auth, Lock, Profile, shared
+  contexts/              AuthContext (session, sign-in/up/out, friendly errors)
+  hooks/                 useEvents, useCalendar, useBiometricLock, useLockSetting
+  services/              eventsApi (Firestore), biometricLock (keychain + prompt), AuthService
+  utils/                 Pure logic: dateHelpers, eventLayout, validation, authErrors
+  theme/                 Light/dark tokens
+__tests__/               Tests mirroring src/
+__mocks__/               Firebase mocks
+firestore.rules          Security rules (deployed to Firebase)
 ```
 
-#### Running on Physical Android Device
+## Status
 
-To run the app on a physical Android device, follow these steps:
+- **Android**: built and tested.
+- **iOS**: not tested yet. Firebase, biometrics and icon fonts need iOS-specific setup (`GoogleService-Info.plist`, `pod install`, `npx rnvi-update-plist package.json ios/CalendarApp/Info.plist`).
 
-1. **Enable Developer Options on your device:**
-   - Go to Settings → About Phone
-   - Tap "Build Number" 7 times until you see "You are now a developer!"
+## License
 
-2. **Enable USB Debugging:**
-   - Go to Settings → Developer Options
-   - Enable "USB Debugging"
-   - Enable "Stay awake" (optional, but recommended)
-
-3. **Connect your device:**
-   - Connect your Android device to your computer via USB cable
-   - On your device, you may see a prompt asking to "Allow USB debugging" - tap "Allow" or "OK"
-   - Check "Always allow from this computer" if you want to skip this prompt in the future
-
-4. **Verify device connection:**
-   ```sh
-   adb devices
-   ```
-   You should see your device listed. If you see "unauthorized", check your device and accept the USB debugging prompt.
-
-5. **Run the app:**
-   ```sh
-   # Using npm
-   npm run android
-
-   # OR using Yarn
-   yarn android
-   ```
-
-6. **Troubleshooting:**
-   - **Device not detected**: Make sure USB drivers are installed (Windows users may need to install device-specific drivers)
-   - **Unauthorized device**: Revoke USB debugging authorizations on your device (Settings → Developer Options → Revoke USB debugging authorizations) and reconnect
-   - **Connection issues**: Try a different USB cable or USB port
-   - **ADB not found**: Make sure Android SDK Platform Tools are installed and added to your PATH
-   - **Build fails**: Ensure your device meets the minimum SDK requirement (Android 7.0 Nougat / API 24)
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+[MIT](LICENSE) © 2025–2026 Rh96

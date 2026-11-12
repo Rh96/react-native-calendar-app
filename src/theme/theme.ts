@@ -27,9 +27,6 @@ export interface ThemeColors {
   today: string;
   todayText: string;
   error: string;
-  
-  // Event colors
-  eventColors: string[];
 }
 
 export interface Theme {
@@ -79,16 +76,6 @@ const lightTheme: Theme = {
     today: '#4A90E2',
     todayText: '#000000',
     error: '#E74C3C',
-    eventColors: [
-      '#4A90E2',
-      '#F5A623',
-      '#7B61FF',
-      '#50C878',
-      '#E74C3C',
-      '#1ABC9C',
-      '#E91E63',
-      '#9C27B0',
-    ],
   },
   spacing: {
     xs: 4,
@@ -135,16 +122,6 @@ const darkTheme: Theme = {
     today: '#4A90E2',
     todayText: '#FFFFFF',
     error: '#E74C3C',
-    eventColors: [
-      '#4A90E2',
-      '#F5A623',
-      '#7B61FF',
-      '#50C878',
-      '#E74C3C',
-      '#1ABC9C',
-      '#E91E63',
-      '#9C27B0',
-    ],
   },
   spacing: {
     xs: 4,
