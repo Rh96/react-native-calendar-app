@@ -31,21 +31,28 @@ afterEach(() => {
 });
 
 
-// Mock react-native-keychain
+// Mock react-native-keychain. Defaults: nothing stored, writes succeed.
 jest.mock('react-native-keychain', () => ({
-  setGenericPassword: jest.fn(),
-  getGenericPassword: jest.fn(),
-  resetGenericPassword: jest.fn(),
+  ACCESSIBLE: { WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'AccessibleWhenUnlockedThisDeviceOnly' },
+  setGenericPassword: jest.fn(() => Promise.resolve(true)),
+  getGenericPassword: jest.fn(() => Promise.resolve(false)),
+  resetGenericPassword: jest.fn(() => Promise.resolve(true)),
 }));
 
-// Mock react-native-biometrics
-jest.mock('react-native-biometrics', () => ({
-  __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    isSensorAvailable: jest.fn(),
-    simplePrompt: jest.fn(),
-  })),
-}));
+// Mock react-native-biometrics with ONE shared instance (the app creates it at
+// module load), reachable in tests via jest.requireMock(...).mockInstance.
+// Defaults: no sensor, prompt cancelled.
+jest.mock('react-native-biometrics', () => {
+  const mockInstance = {
+    isSensorAvailable: jest.fn(() => Promise.resolve({ available: false })),
+    simplePrompt: jest.fn(() => Promise.resolve({ success: false })),
+  };
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockInstance),
+    mockInstance,
+  };
+});
 
 // Mock react-native-safe-area-context with the library's official Jest mock.
 // It covers the full API (incl. SafeAreaInsetsContext, used by React Navigation),
