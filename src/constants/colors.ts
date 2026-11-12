@@ -14,10 +14,22 @@ export const COLORS = {
   EVENT_PURPLE: '#7B61FF',
   EVENT_GREEN: '#50C878',
   EVENT_RED: '#E74C3C',
-  EVENT_CYAN: '#3498DB',
+  EVENT_TEAL: '#1ABC9C',
   EVENT_PINK: '#E91E63',
   EVENT_VIOLET: '#9C27B0',
 } as const;
+
+/** Spoken names for the colour picker (screen readers can't describe a swatch). */
+export const EVENT_COLOR_NAMES: Record<string, string> = {
+  [COLORS.EVENT_BLUE]: 'Blue',
+  [COLORS.EVENT_ORANGE]: 'Orange',
+  [COLORS.EVENT_PURPLE]: 'Purple',
+  [COLORS.EVENT_GREEN]: 'Green',
+  [COLORS.EVENT_RED]: 'Red',
+  [COLORS.EVENT_TEAL]: 'Teal',
+  [COLORS.EVENT_PINK]: 'Pink',
+  [COLORS.EVENT_VIOLET]: 'Violet',
+};
 
 export const EVENT_COLORS = [
   COLORS.EVENT_BLUE,
@@ -25,7 +37,7 @@ export const EVENT_COLORS = [
   COLORS.EVENT_PURPLE,
   COLORS.EVENT_GREEN,
   COLORS.EVENT_RED,
-  COLORS.EVENT_CYAN,
+  COLORS.EVENT_TEAL,
   COLORS.EVENT_PINK,
   COLORS.EVENT_VIOLET,
 ] as const;

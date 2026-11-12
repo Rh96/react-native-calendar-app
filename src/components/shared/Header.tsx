@@ -6,6 +6,8 @@ import { useTheme } from '../../theme';
 interface HeaderProps {
   showBackButton?: boolean;
   onBackPress?: () => void;
+  /** What the back button announces to screen readers, e.g. "Back to month view". */
+  backAccessibilityLabel?: string;
   title?: string;
   logo?: string;
 }
@@ -13,6 +15,7 @@ interface HeaderProps {
 export const Header = memo<HeaderProps>(({ 
   showBackButton = false, 
   onBackPress, 
+  backAccessibilityLabel = 'Back',
   title,
   logo = 'Calendar App'
 }) => {
@@ -36,7 +39,9 @@ export const Header = memo<HeaderProps>(({
             <TouchableOpacity 
               style={styles.backButton} 
               onPress={onBackPress}
-              activeOpacity={0.7}>
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={backAccessibilityLabel}>
               <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>
                 ‹ Back
               </Text>
@@ -48,7 +53,7 @@ export const Header = memo<HeaderProps>(({
 
         {/* Center section - Logo/Title */}
         <View style={styles.centerSection}>
-          <Text style={[styles.logoText, { color: theme.colors.text }]}>
+          <Text style={[styles.logoText, { color: theme.colors.text }]} accessibilityRole="header">
             {title || logo}
           </Text>
         </View>

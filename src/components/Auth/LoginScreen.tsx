@@ -74,6 +74,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
                 },
               ]}
               placeholder="Enter your email"
+              accessibilityLabel="Email"
               placeholderTextColor={theme.colors.textTertiary}
               value={email}
               onChangeText={setEmail}
@@ -96,6 +97,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
                 },
               ]}
               placeholder="Enter your password"
+              accessibilityLabel="Password"
               placeholderTextColor={theme.colors.textTertiary}
               value={password}
               onChangeText={setPassword}
@@ -108,7 +110,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
 
           {displayError && (
             <View style={styles.errorContainer}>
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+              <Text
+                style={[styles.errorText, { color: theme.colors.error }]}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite">
                 {displayError}
               </Text>
             </View>
@@ -123,7 +128,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
               },
             ]}
             onPress={handleLogin}
-            disabled={submitting}>
+            disabled={submitting}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in"
+            accessibilityState={{ disabled: submitting, busy: submitting }}>
             {submitting ? (
               <ActivityIndicator color={theme.colors.primaryText} />
             ) : (
@@ -137,7 +145,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
             <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
               Don't have an account?{' '}
             </Text>
-            <TouchableOpacity onPress={onNavigateToRegister} disabled={submitting}>
+            <TouchableOpacity
+              onPress={onNavigateToRegister}
+              disabled={submitting}
+              accessibilityRole="link"
+              accessibilityLabel="Sign up for an account">
               <Text style={[styles.linkText, { color: theme.colors.primary }]}>
                 Sign Up
               </Text>

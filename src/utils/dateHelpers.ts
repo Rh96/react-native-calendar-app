@@ -175,39 +175,6 @@ export const getEventsForDateRange = (
 };
 
 /**
- * Get hour from date (0-23)
- */
-export const getHour = (date: Date): number => {
-  return date.getHours();
-};
-
-/**
- * Get minutes from date (0-59)
- */
-export const getMinutes = (date: Date): number => {
-  return date.getMinutes();
-};
-
-/**
- * Calculate position percentage for event in day view
- * Returns top position as percentage (0-100)
- */
-export const calculateEventPosition = (date: Date): number => {
-  const hour = getHour(date);
-  const minutes = getMinutes(date);
-  return ((hour * 60 + minutes) / (24 * 60)) * 100;
-};
-
-/**
- * Calculate height percentage for event duration
- */
-export const calculateEventHeight = (start: Date, end: Date): number => {
-  const durationMinutes =
-    (end.getTime() - start.getTime()) / (1000 * 60);
-  return (durationMinutes / (24 * 60)) * 100;
-};
-
-/**
  * Add months to a date
  */
 export const addMonths = (date: Date, months: number): Date => {

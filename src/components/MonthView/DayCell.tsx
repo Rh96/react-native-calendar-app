@@ -4,6 +4,20 @@ import { CalendarEvent, CalendarDay } from '../../types';
 import { useTheme } from '../../theme';
 import { CALENDAR_DAY_SIZE, CALENDAR_DAY_BORDER_RADIUS, CALENDAR_CELL_SIZE } from '../../constants/dimensions';
 import { APP_CONFIG } from '../../constants/config';
+import { formatFullDate } from '../../utils/dateHelpers';
+
+/** e.g. "Thursday, November 12, 2026, today, 2 events" */
+const describeDay = (day: CalendarDay): string => {
+  const parts = [formatFullDate(day.date)];
+  if (day.isToday) {
+    parts.push('today');
+  }
+  const count = day.events.length;
+  if (count > 0) {
+    parts.push(`${count} ${count === 1 ? 'event' : 'events'}`);
+  }
+  return parts.join(', ');
+};
 
 interface DayCellProps {
   day: CalendarDay;
@@ -71,7 +85,11 @@ export const DayCell = memo<DayCellProps>(({ day, isSelected, onPress }) => {
     <TouchableOpacity
       style={styles.dayCell}
       onPress={handlePress}
-      activeOpacity={0.7}>
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={describeDay(day)}
+      accessibilityHint="Opens this day"
+      accessibilityState={{ selected: isSelected }}>
       <View style={getDayContentStyle()}>
         <Text style={getTextStyle()}>{day.date.getDate()}</Text>
       </View>

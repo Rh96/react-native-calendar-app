@@ -43,7 +43,10 @@ export const TimePicker = memo<TimePickerProps>(
             styles.timeButton,
             { backgroundColor: theme.colors.surfaceSecondary },
           ]}
-          onPress={handlePress}>
+          onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel={`${label}, ${formatTimeOnly(value)}`}
+          accessibilityHint="Opens a time picker">
           <Text style={[styles.timeText, { color: theme.colors.text }]}>
             {formatTimeOnly(value)}
           </Text>

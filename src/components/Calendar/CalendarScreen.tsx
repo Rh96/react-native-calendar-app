@@ -3,7 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity, Alert } fr
 import { MonthView } from '../MonthView';
 import { DayView } from '../DayView/DayView';
 import { EventModal, EventModalTarget } from '../EventModal';
-import { Header, TodayButton } from '../shared';
+import { Header } from '../shared';
 import { ViewToggle } from '../shared/ViewToggle';
 import { useTheme } from '../../theme';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -22,6 +22,8 @@ export const CalendarScreen = memo(() => {
   const theme = useTheme();
   const { user } = useAuthContext();
   const calendar = useCalendar();
+  // Stable functions, so callbacks below don't change when calendar state does
+  const { selectDate, setViewMode } = calendar;
   const { events, loading, error, retry, addEvent, updateEvent, deleteEvent } = useEvents(user?.uid || null);
 
   const [modal, setModal] = useState<ModalState>(() => ({
@@ -30,9 +32,9 @@ export const CalendarScreen = memo(() => {
   }));
 
   const handleDateSelect = useCallback((date: Date) => {
-    calendar.selectDate(date);
-    calendar.setViewMode('day');
-  }, [calendar]);
+    selectDate(date);
+    setViewMode('day');
+  }, [selectDate, setViewMode]);
 
   const handleEventPress = useCallback((event: CalendarEvent) => {
     setModal({ visible: true, target: { mode: 'edit', event } });
@@ -76,8 +78,8 @@ export const CalendarScreen = memo(() => {
   }, [modal, deleteEvent]);
 
   const handleBackToMonth = useCallback(() => {
-    calendar.setViewMode('month');
-  }, [calendar]);
+    setViewMode('month');
+  }, [setViewMode]);
 
   const handleAddEvent = useCallback(() => {
     setModal({
@@ -135,15 +137,26 @@ export const CalendarScreen = memo(() => {
       <Header
         showBackButton={calendar.viewMode === 'day'}
         onBackPress={handleBackPress}
+        backAccessibilityLabel="Back to month view"
       />
 
-      {/* View Toggle and Add Event Button */}
+      {/* View Toggle, Today and Add Event */}
       <View style={[styles.toolbar, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
         <ViewToggle viewMode={calendar.viewMode} onModeChange={calendar.setViewMode} />
         <View style={styles.toolbarRight}>
-          <TouchableOpacity 
+          <TouchableOpacity
+            style={[styles.todayButton, { borderColor: theme.colors.primary }]}
+            onPress={calendar.goToToday}
+            accessibilityRole="button">
+            <Text style={[styles.addButtonText, { color: theme.colors.primary }]}>
+              Today
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
-            onPress={handleAddEvent}>
+            onPress={handleAddEvent}
+            accessibilityRole="button"
+            accessibilityLabel="Add event">
             <Text style={[styles.addButtonText, { color: theme.colors.primaryText }]}>
               + Add Event
             </Text>
@@ -178,8 +191,6 @@ export const CalendarScreen = memo(() => {
         onSave={handleSaveEvent}
         onDelete={modal.target.mode === 'edit' ? handleDeleteEvent : undefined}
       />
-
-      <TodayButton onPress={calendar.goToToday} />
     </View>
   );
 });
@@ -219,6 +230,13 @@ const styles = StyleSheet.create({
   toolbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  todayButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 7, // 8 minus the 1px border, so it matches "+ Add Event"
+    borderRadius: 8,
+    borderWidth: 1,
+    marginRight: 8,
   },
   addButton: {
     paddingHorizontal: 16,

@@ -147,7 +147,9 @@ export const EventModal = memo<EventModalProps>(({
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={[styles.headerText, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.headerText, { color: theme.colors.text }]}
+                accessibilityRole="header">
                 {isEdit ? 'Edit Event' : 'New Event'}
               </Text>
             </View>
@@ -168,6 +170,7 @@ export const EventModal = memo<EventModalProps>(({
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Event title"
+                accessibilityLabel="Event title"
                 placeholderTextColor={theme.colors.textTertiary}
               />
             </View>
@@ -213,13 +216,15 @@ export const EventModal = memo<EventModalProps>(({
               {isEdit && onDelete && (
                 <TouchableOpacity
                   style={[styles.button, styles.deleteButton]}
-                  onPress={handleDeletePress}>
+                  onPress={handleDeletePress}
+                  accessibilityRole="button">
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={onClose}>
+                onPress={onClose}
+                accessibilityRole="button">
                 <Text
                   style={[
                     styles.cancelButtonText,
@@ -230,7 +235,8 @@ export const EventModal = memo<EventModalProps>(({
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, styles.saveButton]}
-                onPress={handleSave}>
+                onPress={handleSave}
+                accessibilityRole="button">
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
