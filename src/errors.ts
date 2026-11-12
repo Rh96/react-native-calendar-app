@@ -11,10 +11,6 @@ export class StorageError extends Error {
   constructor(message: string, public readonly originalError?: unknown) {
     super(message);
     this.name = 'StorageError';
-    // Maintains proper stack trace for where our error was thrown (only available on V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, StorageError);
-    }
   }
 
   /**
@@ -42,10 +38,6 @@ export class BiometricError extends Error {
   constructor(message: string, public readonly originalError?: unknown) {
     super(message);
     this.name = 'BiometricError';
-    // Maintains proper stack trace for where our error was thrown (only available on V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, BiometricError);
-    }
   }
 }
 

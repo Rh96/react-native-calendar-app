@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { CalendarEvent } from '../../types';
 import { generateCalendarDays, isSameDay } from '../../utils/dateHelpers';
 import { CalendarHeader } from './CalendarHeader';

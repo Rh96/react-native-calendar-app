@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { AuthService } from '../services/AuthService';
+import { getAuthErrorMessage } from '../utils/authErrors';
 
 interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
-  loading: boolean;
+  /** True until Firebase reports whether a saved session exists (app startup only). */
+  initializing: boolean;
+  /** True while sign-in, sign-up or sign-out is in progress. */
+  submitting: boolean;
+  /** Last auth error, with a user-facing message. */
   error: Error | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -22,75 +27,81 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  // Two flags, not one: the app gate (App.tsx) must only react to startup,
+  // otherwise a sign-in attempt swaps the login form for a spinner and its
+  // input is lost when it remounts.
+  const [initializing, setInitializing] = useState<boolean>(true);
+  const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     // Listen to authentication state changes
     const unsubscribe = authService.onAuthStateChanged((authUser) => {
       setUser(authUser);
-      setLoading(false);
+      setInitializing(false);
       setError(null);
     });
 
     return unsubscribe;
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
+  /** Runs an auth action with shared submitting/error handling. */
+  const runAuthAction = useCallback(
+    async (action: () => Promise<unknown>, fallbackMessage: string) => {
       setError(null);
-      setLoading(true);
-      await authService.signIn(email, password);
-      // Auth state listener will update user state
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to sign in');
-      setError(error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      setSubmitting(true);
+      try {
+        await action();
+        // The auth state listener updates `user`
+      } catch (err) {
+        const friendlyError = new Error(getAuthErrorMessage(err, fallbackMessage));
+        setError(friendlyError);
+        throw friendlyError;
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [],
+  );
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    try {
-      setError(null);
-      setLoading(true);
-      await authService.signUp(email, password);
-      // Auth state listener will update user state
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to sign up');
-      setError(error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const signIn = useCallback(
+    (email: string, password: string) =>
+      runAuthAction(() => authService.signIn(email, password), "Couldn't sign in. Please try again."),
+    [runAuthAction],
+  );
 
-  const signOut = useCallback(async () => {
-    try {
-      setError(null);
-      await authService.signOut();
-      // Auth state listener will update user state
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to sign out');
-      setError(error);
-      throw error;
-    }
-  }, []);
+  const signUp = useCallback(
+    (email: string, password: string) =>
+      runAuthAction(
+        () => authService.signUp(email, password),
+        "Couldn't create your account. Please try again.",
+      ),
+    [runAuthAction],
+  );
+
+  const signOut = useCallback(
+    () => runAuthAction(() => authService.signOut(), "Couldn't sign out. Please try again."),
+    [runAuthAction],
+  );
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    error,
-    signIn,
-    signUp,
-    signOut,
-    clearError,
-  };
+  // Memoised so consumers only re-render when auth state actually changes.
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      initializing,
+      submitting,
+      error,
+      signIn,
+      signUp,
+      signOut,
+      clearError,
+    }),
+    [user, initializing, submitting, error, signIn, signUp, signOut, clearError],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
@@ -102,4 +113,3 @@ export const useAuthContext = (): AuthContextType => {
   }
   return context;
 };
-

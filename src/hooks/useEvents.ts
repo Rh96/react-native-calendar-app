@@ -1,125 +1,78 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { CalendarEvent } from '../types';
-import { EventService } from '../services/EventService';
-import { FirebaseEventRepository } from '../services/repositories/FirebaseEventRepository';
+import * as eventsApi from '../services/eventsApi';
+import type { NewEvent, EventUpdate } from '../services/eventsApi';
 
-// Create service instance (Dependency Injection)
-const createEventService = () => {
-  const repository = new FirebaseEventRepository();
-  return new EventService(repository);
-};
-
+/**
+ * Real-time events for one user.
+ *
+ * - `loading` stays true until the first snapshot arrives.
+ * - `error` is a *load* error (the listener failed); call `retry()` to resubscribe.
+ * - Write functions return Promises that reject on failure. Write errors are
+ *   the caller's to show; they don't replace the calendar with an error screen.
+ */
 export const useEvents = (userId: string | null) => {
-  const serviceRef = useRef<EventService>(createEventService());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(userId !== null);
   const [error, setError] = useState<Error | null>(null);
+  // Bumping this re-runs the effect, which creates a fresh listener.
+  const [attempt, setAttempt] = useState(0);
 
-  // Initialize Firebase repository and set up real-time listener
   useEffect(() => {
     if (!userId) {
-      setLoading(false);
       setEvents([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 
-    let isMounted = true;
-    let unsubscribe: (() => void) | null = null;
+    setLoading(true);
+    setError(null);
 
-    const initializeService = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        await serviceRef.current.initialize(userId);
-        
-        // Initial load from cache
-        if (isMounted) {
-          setEvents(serviceRef.current.getAllEvents());
-          setLoading(false);
-        }
+    return eventsApi.subscribeToEvents(
+      userId,
+      (next) => {
+        setEvents(next);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      },
+    );
+  }, [userId, attempt]);
 
-        // Subscribe to repository changes
-        const repository = (serviceRef.current as any).repository;
-        if (repository && typeof repository.subscribe === 'function') {
-          unsubscribe = repository.subscribe(() => {
-            if (isMounted) {
-              setEvents(serviceRef.current.getAllEvents());
-            }
-          });
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error('Failed to initialize events'));
-          setLoading(false);
-        }
+  const retry = useCallback(() => {
+    setAttempt((n) => n + 1);
+  }, []);
+
+  const addEvent = useCallback(
+    (event: NewEvent): Promise<string> => {
+      if (!userId) {
+        return Promise.reject(new Error('Cannot create an event while signed out'));
       }
-    };
-
-    initializeService();
-
-    // Cleanup
-    return () => {
-      isMounted = false;
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      serviceRef.current.cleanup();
-    };
-  }, [userId]);
-
-  const addEvent = useCallback((event: Omit<CalendarEvent, 'id'>) => {
-    try {
-      const newEvent = serviceRef.current.createEvent(event);
-      // Optimistically update UI - real-time listener will sync
-      setEvents(serviceRef.current.getAllEvents());
-      return newEvent;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to add event'));
-      throw err;
-    }
-  }, []);
-
-  const updateEvent = useCallback((id: string, updates: Partial<CalendarEvent>) => {
-    try {
-      const updated = serviceRef.current.updateEvent(id, updates);
-      // Optimistically update UI - real-time listener will sync
-      setEvents(serviceRef.current.getAllEvents());
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to update event'));
-      throw err;
-    }
-  }, []);
-
-  const deleteEvent = useCallback((id: string) => {
-    try {
-      const success = serviceRef.current.deleteEvent(id);
-      // Optimistically update UI - real-time listener will sync
-      setEvents(serviceRef.current.getAllEvents());
-      return success;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to delete event'));
-      throw err;
-    }
-  }, []);
-
-  const getEventById = useCallback(
-    (id: string) => {
-      return serviceRef.current.getEventById(id);
+      return eventsApi.createEvent(userId, event);
     },
-    []
+    [userId],
+  );
+
+  const updateEvent = useCallback(
+    (id: string, updates: EventUpdate): Promise<void> => eventsApi.updateEvent(id, updates),
+    [],
+  );
+
+  const deleteEvent = useCallback(
+    (id: string): Promise<void> => eventsApi.deleteEvent(id),
+    [],
   );
 
   return {
     events,
     loading,
     error,
+    retry,
     addEvent,
     updateEvent,
     deleteEvent,
-    getEventById,
   };
 };
-
-
-

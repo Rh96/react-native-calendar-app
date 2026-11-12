@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// Calendar App — Firestore security rules
+//
+// Model: one flat `events` collection; every document carries the owner's UID
+// in `userId`. A user can only ever see or change their own events.
+// Anything not matched below (other collections) is denied by default.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    // Shape of a valid event document. Mirrors src/utils/validation.ts and
+    // eventToFirestore() in src/config/firebase.ts.
+    function isValidEvent(data) {
+      return data.keys().hasAll(['userId', 'title', 'startDate', 'endDate', 'color'])
+        && data.keys().hasOnly(['userId', 'title', 'startDate', 'endDate', 'color', 'description'])
+        && data.title is string
+        && data.title.trim().size() >= 1
+        && data.title.size() <= 100
+        && data.startDate is timestamp
+        && data.endDate is timestamp
+        && data.endDate > data.startDate
+        && data.color is string
+        && data.color.matches('^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$')
+        && (!('description' in data)
+            || data.description == null
+            || (data.description is string && data.description.size() <= 1000));
+    }
+
+    match /events/{eventId} {
+      // Covers both single reads and the app's list query. Queries must filter
+      // with where('userId', '==', uid), otherwise Firestore rejects them.
+      allow read: if isOwner(resource.data);
+
+      // New events must be stamped with the creator's own UID.
+      allow create: if isOwner(request.resource.data)
+        && isValidEvent(request.resource.data);
+
+      // Only the owner can edit, ownership can't be transferred, and the
+      // merged result must still be a valid event.
+      allow update: if isOwner(resource.data)
+        && request.resource.data.userId == resource.data.userId
+        && isValidEvent(request.resource.data);
+
+      allow delete: if isOwner(resource.data);
+    }
+  }
+}

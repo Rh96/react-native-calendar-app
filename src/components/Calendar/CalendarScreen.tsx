@@ -1,8 +1,8 @@
 import React, { useState, useCallback, memo } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity, Alert } from 'react-native';
 import { MonthView } from '../MonthView';
 import { DayView } from '../DayView/DayView';
-import { EventModal } from '../EventModal';
+import { EventModal, EventModalTarget } from '../EventModal';
 import { Header, TodayButton } from '../shared';
 import { ViewToggle } from '../shared/ViewToggle';
 import { useTheme } from '../../theme';
@@ -10,16 +10,24 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { useCalendar } from '../../hooks/useCalendar';
 import { useEvents } from '../../hooks/useEvents';
 import { CalendarEvent } from '../../types';
+import { nextFullHourOn } from '../../utils/dateHelpers';
+
+interface ModalState {
+  visible: boolean;
+  // Kept after closing so the modal's content doesn't change during its exit animation.
+  target: EventModalTarget;
+}
 
 export const CalendarScreen = memo(() => {
   const theme = useTheme();
   const { user } = useAuthContext();
   const calendar = useCalendar();
-  const { events, loading, error, addEvent, updateEvent, deleteEvent } = useEvents(user?.uid || null);
+  const { events, loading, error, retry, addEvent, updateEvent, deleteEvent } = useEvents(user?.uid || null);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>();
-  const [modalInitialDate, setModalInitialDate] = useState<Date | undefined>();
+  const [modal, setModal] = useState<ModalState>(() => ({
+    visible: false,
+    target: { mode: 'create', start: new Date() },
+  }));
 
   const handleDateSelect = useCallback((date: Date) => {
     calendar.selectDate(date);
@@ -27,47 +35,59 @@ export const CalendarScreen = memo(() => {
   }, [calendar]);
 
   const handleEventPress = useCallback((event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setModalVisible(true);
+    setModal({ visible: true, target: { mode: 'edit', event } });
   }, []);
 
   const handleTimeSlotPress = useCallback((date: Date) => {
-    setModalInitialDate(date);
-    setSelectedEvent(undefined);
-    setModalVisible(true);
+    setModal({ visible: true, target: { mode: 'create', start: date } });
   }, []);
 
+  // The modal closes straight away instead of waiting for the server: offline,
+  // Firestore only confirms a write after reconnecting. The listener shows the
+  // change immediately, and if the server rejects it Firestore rolls it back
+  // and we tell the user here (ADR-004). The modal closes itself after onSave.
   const handleSaveEvent = useCallback(
     (eventData: Omit<CalendarEvent, 'id'>) => {
-      if (selectedEvent) {
-        updateEvent(selectedEvent.id, eventData);
-      } else {
-        addEvent(eventData);
-      }
-      setModalVisible(false);
+      const { target } = modal;
+      const write = target.mode === 'edit'
+        ? updateEvent(target.event.id, eventData)
+        : addEvent(eventData);
+      write.catch(() => {
+        Alert.alert(
+          "Couldn't save event",
+          `"${eventData.title}" wasn't saved. Please try again.`
+        );
+      });
     },
-    [selectedEvent, updateEvent, addEvent]
+    [modal, updateEvent, addEvent]
   );
 
   const handleDeleteEvent = useCallback(() => {
-    if (selectedEvent) {
-      deleteEvent(selectedEvent.id);
-      setModalVisible(false);
+    const { target } = modal;
+    if (target.mode === 'edit') {
+      const { id, title } = target.event;
+      deleteEvent(id).catch(() => {
+        Alert.alert(
+          "Couldn't delete event",
+          `"${title}" wasn't deleted. Please try again.`
+        );
+      });
     }
-  }, [selectedEvent, deleteEvent]);
+  }, [modal, deleteEvent]);
 
   const handleBackToMonth = useCallback(() => {
     calendar.setViewMode('month');
   }, [calendar]);
 
   const handleAddEvent = useCallback(() => {
-    setSelectedEvent(undefined);
-    setModalInitialDate(calendar.selectedDate);
-    setModalVisible(true);
-  }, [calendar]);
+    setModal({
+      visible: true,
+      target: { mode: 'create', start: nextFullHourOn(calendar.selectedDate) },
+    });
+  }, [calendar.selectedDate]);
 
   const handleCloseModal = useCallback(() => {
-    setModalVisible(false);
+    setModal((current) => ({ ...current, visible: false }));
   }, []);
 
   const handleBackPress = useCallback(() => {
@@ -96,8 +116,16 @@ export const CalendarScreen = memo(() => {
           Error loading events
         </Text>
         <Text style={[styles.errorSubtext, { color: theme.colors.text }]}>
-          {error.message}
+          Check your connection and try again.
         </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+          onPress={retry}
+          accessibilityRole="button">
+          <Text style={[styles.addButtonText, { color: theme.colors.primaryText }]}>
+            Retry
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -140,17 +168,15 @@ export const CalendarScreen = memo(() => {
           onTimeSlotPress={handleTimeSlotPress}
           onPrevDay={calendar.goToPrevDay}
           onNextDay={calendar.goToNextDay}
-          onBackToMonth={handleBackToMonth}
         />
       )}
 
       <EventModal
-        visible={modalVisible}
+        visible={modal.visible}
+        target={modal.target}
         onClose={handleCloseModal}
         onSave={handleSaveEvent}
-        onDelete={selectedEvent ? handleDeleteEvent : undefined}
-        event={selectedEvent}
-        initialDate={modalInitialDate}
+        onDelete={modal.target.mode === 'edit' ? handleDeleteEvent : undefined}
       />
 
       <TodayButton onPress={calendar.goToToday} />
@@ -197,6 +223,12 @@ const styles = StyleSheet.create({
   addButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    borderRadius: 8,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   addButtonText: {

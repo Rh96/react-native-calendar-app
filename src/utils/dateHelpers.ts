@@ -226,6 +226,25 @@ export const addDays = (date: Date, days: number): Date => {
 };
 
 /**
+ * Add hours to a date
+ */
+export const addHours = (date: Date, hours: number): Date => {
+  const newDate = new Date(date);
+  newDate.setHours(newDate.getHours() + hours);
+  return newDate;
+};
+
+/**
+ * Default start for a new event on `day`: the next full hour after `now`
+ * (e.g. 14:30 → 15:00), capped at 23:00 so it never spills into the next day.
+ */
+export const nextFullHourOn = (day: Date, now: Date = new Date()): Date => {
+  const start = new Date(day);
+  start.setHours(Math.min(now.getHours() + 1, 23), 0, 0, 0);
+  return start;
+};
+
+/**
  * Generate array of hours for day view (0-23)
  */
 export const generateHours = (): number[] => {

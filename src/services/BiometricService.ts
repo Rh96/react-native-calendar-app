@@ -1,6 +1,5 @@
 import ReactNativeBiometrics from 'react-native-biometrics';
 import { IBiometricService } from './interfaces/IBiometricService';
-import { BiometricError } from '../errors';
 import { BIOMETRIC_MESSAGES } from '../constants/biometricMessages';
 
 /**

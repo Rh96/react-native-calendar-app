@@ -34,11 +34,11 @@ function App() {
 
 const AppContent = memo(() => {
   const theme = useTheme();
-  const { user, loading: authLoading } = useAuthContext();
+  const { user, initializing } = useAuthContext();
   const [showRegister, setShowRegister] = useState(false);
 
   // Show loading while checking auth state
-  if (authLoading) {
+  if (initializing) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />

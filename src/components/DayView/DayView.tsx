@@ -27,7 +27,6 @@ interface DayViewProps {
   onTimeSlotPress: (date: Date) => void;
   onPrevDay: () => void;
   onNextDay: () => void;
-  onBackToMonth: () => void;
 }
 
 export const DayView = React.memo<DayViewProps>(({
@@ -37,7 +36,6 @@ export const DayView = React.memo<DayViewProps>(({
   onTimeSlotPress,
   onPrevDay,
   onNextDay,
-  onBackToMonth,
 }) => {
   const isDark = useColorScheme() === 'dark';
   const scrollViewRef = useRef<ScrollView>(null);
