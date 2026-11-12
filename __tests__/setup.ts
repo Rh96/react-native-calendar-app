@@ -6,6 +6,14 @@
 // Note: @testing-library/react-native v12.4+ includes matchers by default
 // No need to import extend-expect
 
+import { configure } from '@testing-library/react-native';
+
+// findBy*/waitFor give up after 1s by default. With a cold Jest cache (always
+// the case in CI), the first full-App render in a file compiles React
+// Navigation on the fly and can take longer, so the first test in a file failed
+// only in a clean checkout. 5s is still fast to fail on a real bug.
+configure({ asyncUtilTimeout: 5000 });
+
 // Fail any test that logs an error or warning (e.g. React act() warnings),
 // so problems can't hide in test output. A test that *expects* a log should
 // spy on console itself: jest.spyOn(console, 'error').mockImplementation(() => {}).
