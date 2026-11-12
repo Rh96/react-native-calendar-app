@@ -77,3 +77,6 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Project planning docs (local only)
+docs/

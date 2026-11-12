@@ -33,7 +33,7 @@ describe('LoginScreen', () => {
   beforeEach(() => {
     (useAuth as jest.Mock).mockReturnValue({
       signIn: mockSignIn,
-      loading: false,
+      submitting: false,
       error: null,
       clearError: mockClearError,
     });
@@ -134,7 +134,7 @@ describe('LoginScreen', () => {
     it('should display error from useAuth hook', () => {
       (useAuth as jest.Mock).mockReturnValue({
         signIn: mockSignIn,
-        loading: false,
+        submitting: false,
         error: { message: 'Invalid credentials' },
         clearError: mockClearError,
       });
@@ -148,10 +148,10 @@ describe('LoginScreen', () => {
   });
 
   describe('Loading State', () => {
-    it('should disable inputs and button when loading', () => {
+    it('should disable inputs and button while submitting', () => {
       (useAuth as jest.Mock).mockReturnValue({
         signIn: mockSignIn,
-        loading: true,
+        submitting: true,
         error: null,
         clearError: mockClearError,
       });
@@ -165,7 +165,7 @@ describe('LoginScreen', () => {
 
       expect(emailInput.props.editable).toBe(false);
       expect(passwordInput.props.editable).toBe(false);
-      // When loading, button shows ActivityIndicator instead of text
+      // While submitting, button shows ActivityIndicator instead of text
       expect(queryByText('Sign In')).toBeNull();
     });
   });

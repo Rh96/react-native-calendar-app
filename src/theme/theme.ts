@@ -1,3 +1,5 @@
+import type { TextStyle } from 'react-native';
+
 export type ColorScheme = 'light' | 'dark';
 
 export interface ThemeColors {
@@ -53,10 +55,10 @@ export interface Theme {
     xl: number;
   };
   fontWeight: {
-    normal: string;
-    medium: string;
-    semibold: string;
-    bold: string;
+    normal: TextStyle['fontWeight'];
+    medium: TextStyle['fontWeight'];
+    semibold: TextStyle['fontWeight'];
+    bold: TextStyle['fontWeight'];
   };
 }
 

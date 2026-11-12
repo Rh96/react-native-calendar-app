@@ -1,17 +1,18 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../../theme';
 import { useAuth } from '../../hooks/useAuth';
 
 export const ProfileScreen = memo(() => {
   const theme = useTheme();
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, submitting } = useAuth();
 
   const handleLogout = useCallback(async () => {
     try {
       await signOut();
     } catch (err) {
-      // Error handling is done in AuthContext
+      // AuthContext already converted this into a user-facing message
+      Alert.alert('Sign out failed', err instanceof Error ? err.message : 'Please try again.');
     }
   }, [signOut]);
 
@@ -36,12 +37,12 @@ export const ProfileScreen = memo(() => {
             styles.button,
             {
               backgroundColor: theme.colors.primary,
-              opacity: loading ? 0.6 : 1,
+              opacity: submitting ? 0.6 : 1,
             },
           ]}
           onPress={handleLogout}
-          disabled={loading}>
-          {loading ? (
+          disabled={submitting}>
+          {submitting ? (
             <ActivityIndicator color={theme.colors.primaryText} />
           ) : (
             <Text style={[styles.buttonText, { color: theme.colors.primaryText }]}>

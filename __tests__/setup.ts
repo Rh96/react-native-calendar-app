@@ -29,8 +29,9 @@ jest.mock('react-native-biometrics', () => ({
   })),
 }));
 
-// Mock react-native-safe-area-context
-jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: jest.fn(() => ({ top: 0, right: 0, bottom: 0, left: 0 })),
-  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
+// Mock react-native-safe-area-context with the library's official Jest mock.
+// It covers the full API (incl. SafeAreaInsetsContext, used by React Navigation),
+// which a hand-written partial mock would have to keep in sync manually.
+jest.mock('react-native-safe-area-context', () =>
+  jest.requireActual<{ default: object }>('react-native-safe-area-context/jest/mock').default,
+);

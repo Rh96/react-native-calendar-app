@@ -20,7 +20,7 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }) => {
   const theme = useTheme();
   const safeAreaInsets = useSafeAreaInsets();
-  const { signIn, loading, error, clearError } = useAuth();
+  const { signIn, submitting, error, clearError } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,7 +80,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
-              editable={!loading}
+              editable={!submitting}
             />
           </View>
 
@@ -102,7 +102,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
               secureTextEntry
               autoCapitalize="none"
               autoComplete="password"
-              editable={!loading}
+              editable={!submitting}
             />
           </View>
 
@@ -119,12 +119,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
               styles.button,
               {
                 backgroundColor: theme.colors.primary,
-                opacity: loading ? 0.6 : 1,
+                opacity: submitting ? 0.6 : 1,
               },
             ]}
             onPress={handleLogin}
-            disabled={loading}>
-            {loading ? (
+            disabled={submitting}>
+            {submitting ? (
               <ActivityIndicator color={theme.colors.primaryText} />
             ) : (
               <Text style={[styles.buttonText, { color: theme.colors.primaryText }]}>
@@ -137,7 +137,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
             <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
               Don't have an account?{' '}
             </Text>
-            <TouchableOpacity onPress={onNavigateToRegister} disabled={loading}>
+            <TouchableOpacity onPress={onNavigateToRegister} disabled={submitting}>
               <Text style={[styles.linkText, { color: theme.colors.primary }]}>
                 Sign Up
               </Text>

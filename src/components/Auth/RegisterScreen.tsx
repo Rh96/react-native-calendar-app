@@ -21,7 +21,7 @@ interface RegisterScreenProps {
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogin }) => {
   const theme = useTheme();
   const safeAreaInsets = useSafeAreaInsets();
-  const { signUp, loading, error, clearError } = useAuth();
+  const { signUp, submitting, error, clearError } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -93,7 +93,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogi
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
-              editable={!loading}
+              editable={!submitting}
             />
           </View>
 
@@ -115,7 +115,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogi
               secureTextEntry
               autoCapitalize="none"
               autoComplete="password-new"
-              editable={!loading}
+              editable={!submitting}
             />
           </View>
 
@@ -137,7 +137,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogi
               secureTextEntry
               autoCapitalize="none"
               autoComplete="password-new"
-              editable={!loading}
+              editable={!submitting}
             />
           </View>
 
@@ -154,12 +154,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogi
               styles.button,
               {
                 backgroundColor: theme.colors.primary,
-                opacity: loading ? 0.6 : 1,
+                opacity: submitting ? 0.6 : 1,
               },
             ]}
             onPress={handleRegister}
-            disabled={loading}>
-            {loading ? (
+            disabled={submitting}>
+            {submitting ? (
               <ActivityIndicator color={theme.colors.primaryText} />
             ) : (
               <Text style={[styles.buttonText, { color: theme.colors.primaryText }]}>
@@ -172,7 +172,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogi
             <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
               Already have an account?{' '}
             </Text>
-            <TouchableOpacity onPress={onNavigateToLogin} disabled={loading}>
+            <TouchableOpacity onPress={onNavigateToLogin} disabled={submitting}>
               <Text style={[styles.linkText, { color: theme.colors.primary }]}>
                 Sign In
               </Text>

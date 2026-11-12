@@ -115,6 +115,17 @@ You can use `android/app/google-services.json.example` as a reference for the fi
 
 > **Note**: Make sure you have completed the iOS prerequisites (CocoaPods, Ruby) before setting up Firebase for iOS.
 
+### Firestore Security Rules
+
+Security rules live in [`firestore.rules`](firestore.rules). Each user can only read and write their own events, and new events are validated (title length, `endDate > startDate`, colour format). Deploy them to your project after any change:
+
+```sh
+npx firebase-tools login            # once
+npx firebase-tools deploy --only firestore:rules --project <your-firebase-project-id>
+```
+
+Your project ID is `project_info.project_id` in `android/app/google-services.json`.
+
 ## Step 1: Start Metro
 
 First, you will need to run **Metro**, the JavaScript build tool for React Native.

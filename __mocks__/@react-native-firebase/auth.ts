@@ -16,9 +16,10 @@ const mockUserCredential = {
 
 let mockCurrentUser: any = null;
 let mockAuthStateCallback: ((user: any) => void) | null = null;
+let mockSignInError: Error | null = null;
 
 const mockAuth = () => ({
-  createUserWithEmailAndPassword: jest.fn((email: string, password: string) => {
+  createUserWithEmailAndPassword: jest.fn((email: string, _password: string) => {
     mockCurrentUser = { ...mockUserCredential.user, email };
     if (mockAuthStateCallback) {
       mockAuthStateCallback(mockCurrentUser);
@@ -26,7 +27,10 @@ const mockAuth = () => ({
     return Promise.resolve({ ...mockUserCredential, user: mockCurrentUser });
   }),
   
-  signInWithEmailAndPassword: jest.fn((email: string, password: string) => {
+  signInWithEmailAndPassword: jest.fn((email: string, _password: string) => {
+    if (mockSignInError) {
+      return Promise.reject(mockSignInError);
+    }
     mockCurrentUser = { ...mockUserCredential.user, email };
     if (mockAuthStateCallback) {
       mockAuthStateCallback(mockCurrentUser);
@@ -64,6 +68,11 @@ export const setMockCurrentUser = (user: any) => {
 
 export const clearMockCurrentUser = () => {
   mockCurrentUser = null;
+};
+
+/** Make the next sign-in attempts reject with `error` (pass null to reset). */
+export const setMockSignInError = (error: Error | null) => {
+  mockSignInError = error;
 };
 
 export const triggerAuthStateChange = (user: any) => {

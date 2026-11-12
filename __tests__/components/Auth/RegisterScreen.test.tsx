@@ -33,7 +33,7 @@ describe('RegisterScreen', () => {
   beforeEach(() => {
     (useAuth as jest.Mock).mockReturnValue({
       signUp: mockSignUp,
-      loading: false,
+      submitting: false,
       error: null,
       clearError: mockClearError,
     });
@@ -172,7 +172,7 @@ describe('RegisterScreen', () => {
     it('should display error from useAuth hook', () => {
       (useAuth as jest.Mock).mockReturnValue({
         signUp: mockSignUp,
-        loading: false,
+        submitting: false,
         error: { message: 'Email already in use' },
         clearError: mockClearError,
       });
@@ -186,10 +186,10 @@ describe('RegisterScreen', () => {
   });
 
   describe('Loading State', () => {
-    it('should disable inputs and button when loading', () => {
+    it('should disable inputs and button while submitting', () => {
       (useAuth as jest.Mock).mockReturnValue({
         signUp: mockSignUp,
-        loading: true,
+        submitting: true,
         error: null,
         clearError: mockClearError,
       });
@@ -205,7 +205,7 @@ describe('RegisterScreen', () => {
       expect(emailInput.props.editable).toBe(false);
       expect(passwordInput.props.editable).toBe(false);
       expect(confirmPasswordInput.props.editable).toBe(false);
-      // When loading, button shows ActivityIndicator instead of text
+      // While submitting, button shows ActivityIndicator instead of text
       expect(queryByText('Sign Up')).toBeNull();
     });
   });
