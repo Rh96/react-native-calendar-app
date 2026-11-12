@@ -31,7 +31,7 @@ A personal calendar for Android built with React Native and Firebase. It has mon
 | Navigation | React Navigation 7 (bottom tabs) |
 | Backend | Firebase Authentication (email/password) and Cloud Firestore |
 | Device | `react-native-biometrics`, `react-native-keychain`, Material Design Icons |
-| Testing | Jest and React Native Testing Library (138 tests) |
+| Testing | Jest and React Native Testing Library (138 app tests), Firebase emulator (22 security rules tests) |
 | CI | GitHub Actions: typecheck, lint and test on every PR |
 
 ## Architecture and key decisions
@@ -53,6 +53,7 @@ Firestore ──onSnapshot──▶ eventsApi ──▶ useEvents ──▶ Mont
 
 - Node.js 22 (see [`.nvmrc`](.nvmrc)) and npm
 - JDK 17, Android Studio with Android SDK 36 (minimum supported device: Android 7.0 / API 24)
+- JDK 21 *only for the security rules tests*: the Firestore emulator requires it. Install it alongside 17; `npm run test:rules` finds it automatically, so your default Java (and Android builds) stays on 17
 - A Firebase project (free tier is enough)
 
 Follow the official [React Native environment setup](https://reactnative.dev/docs/set-up-your-environment) for Android first.
@@ -98,19 +99,22 @@ npm run android   # in a second terminal
 
 | Command | What it does |
 |---|---|
-| `npm test` | Jest test suite |
+| `npm test` | Jest test suite (app) |
+| `npm run test:rules` | Firestore security rules tests in the local emulator (needs JDK 21) |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run lint` | ESLint |
 | `npm start` / `npm run android` | Metro / build and run on Android |
 
-The tests cover the pure calendar logic (overlap columns, the month grid including leap years and daylight-saving changes, validation), hooks (events, calendar state, biometric lock), and full user flows through the real app with only native modules mocked. They query the UI by accessible role and name, the way a screen reader sees it.
+The **security rules** have their own suite ([`rules-tests/`](rules-tests/firestore.rules.test.ts)) that runs the real `firestore.rules` in the Firestore emulator with an offline `demo-` project. It covers ownership of reads, writes and deletes, the "rules are not filters" query behaviour, and every validation (title, dates, colour, unknown fields, ownership transfer, merged updates).
+
+The app tests cover the pure calendar logic (overlap columns, the month grid including leap years and daylight-saving changes, validation), hooks (events, calendar state, biometric lock), and full user flows through the real app with only native modules mocked. They query the UI by accessible role and name, the way a screen reader sees it.
 
 Test setup worth knowing:
 
 - Jest runs in a fixed time zone with daylight saving (`Europe/Berlin`), so date tests behave the same locally and in CI (which runs in UTC).
 - Any unexpected `console.error`/`console.warn` fails the test, so React warnings can't pile up unnoticed.
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `npm ci`, typecheck, lint and tests on every pull request and push to `main` and `dev`. No secrets are needed.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs two jobs on every pull request and push to `main` and `dev`: typecheck, lint and app tests, and the security rules tests against the emulator. No secrets are needed.
 
 ## Project structure
 
