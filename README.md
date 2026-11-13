@@ -11,17 +11,17 @@ A personal calendar for Android built with React Native and Firebase. It has mon
 - **Create, edit, delete events**: title, optional description, date, start and end time, and one of eight colours. Moving an event to another day keeps its times, with validation.
 - **Real-time and offline**: changes appear instantly and sync when you're back online. Failed saves are reported, never silently lost.
 - **Private by design**: Firestore security rules allow each user to read and write only their own events.
-- **Biometric lock** (optional): fingerprint or face required to open a saved session. Turned on from Profile.
+- **Biometric lock** (optional): fingerprint or face required to open a saved session, and again after more than a minute in the background. Turned on from Profile.
 - **Accessible**: every control has a role and spoken label for TalkBack (e.g. "Thursday, November 12, 2026, today, 2 events").
 - **Light and dark theme** following the system setting.
 
-<!--
 ## Screenshots
 
-| Month | Day | New event | Lock |
+Dark theme, on a physical Android phone (test account).
+
+| Sign in | Month | Event form | Lock |
 |---|---|---|---|
-| ![Month view](screenshots/month.png) | ![Day view](screenshots/day.png) | ![New event](screenshots/new-event.png) | ![Biometric lock](screenshots/lock.png) |
--->
+| <img src="screenshots/sign-in.jpg" alt="Sign-in screen with email and password fields" width="200"> | <img src="screenshots/month.jpg" alt="Month view of November 2026 with today selected and an event dot" width="200"> | <img src="screenshots/event-form.jpg" alt="Event form with the native time picker open" width="200"> | <img src="screenshots/lock.jpg" alt="Lock screen with Unlock and Use password buttons" width="200"> |
 
 ## Tech stack
 
@@ -31,7 +31,7 @@ A personal calendar for Android built with React Native and Firebase. It has mon
 | Navigation | React Navigation 7 (bottom tabs) |
 | Backend | Firebase Authentication (email/password) and Cloud Firestore |
 | Device | `react-native-biometrics`, `react-native-keychain`, Material Design Icons |
-| Testing | Jest and React Native Testing Library (153 app tests), Firebase emulator (22 security rules tests) |
+| Testing | Jest and React Native Testing Library (163 app tests), Firebase emulator (22 security rules tests) |
 | CI | GitHub Actions: typecheck, lint and test on every PR |
 
 ## Architecture and key decisions

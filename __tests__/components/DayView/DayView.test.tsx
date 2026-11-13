@@ -47,6 +47,16 @@ describe('DayView', () => {
     expect(styleOf('event-short')).toMatchObject({ top: 780, height: 40 });
   });
 
+  it('draws each event card filling its slot, so its height matches its duration', () => {
+    // Jest has no layout engine, so check the style that makes the card
+    // stretch to the slot sized above (the bug: it shrank to fit its text).
+    renderDay([event('long', 9, 11)]);
+
+    const card = StyleSheet.flatten(screen.getByRole('button', { name: /^long,/ }).props.style);
+    expect(card).toMatchObject({ flex: 1 });
+    expect(card).not.toHaveProperty('minHeight');
+  });
+
   it('only shows events from the selected day', () => {
     renderDay([event('today', 9, 10), { ...event('tomorrow', 9, 10), startDate: new Date(2026, 10, 13, 9) }]);
 

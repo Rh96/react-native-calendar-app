@@ -18,6 +18,9 @@ export const APP_CONFIG = {
   HOURS_PER_DAY: 24,
   MINUTES_PER_HOUR: 60,
   
+  // Biometric lock: lock again after this long in the background (ADR-003)
+  LOCK_AFTER_BACKGROUND_MS: 60_000,
+
   // UI configuration
   ACTIVE_OPACITY: 0.7,
   OTHER_MONTH_OPACITY: 0.3,

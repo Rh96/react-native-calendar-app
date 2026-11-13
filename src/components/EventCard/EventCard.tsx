@@ -46,11 +46,15 @@ export const EventCard: React.FC<EventCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    // Fill the time slot DayView sizes and positions (its MIN_EVENT_HEIGHT is
+    // the only minimum). Without this the card shrinks to fit its text, so a
+    // 2-hour event looked like a 50-minute one.
+    flex: 1,
+    overflow: 'hidden', // short events cut off their text instead of spilling
     padding: 8,
     borderRadius: 6,
     marginVertical: 2,
-    minHeight: 50,
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // title at the start time, like calendar apps
   },
   title: {
     color: '#FFFFFF',
