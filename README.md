@@ -8,7 +8,7 @@ A personal calendar for Android built with React Native and Firebase. It has mon
 
 - **Month view**: 6-week grid with up to three colour dots per day and a highlighted today and selected day.
 - **Day view**: hourly timeline (1 px per minute). Overlapping events sit side by side in columns; tap an empty hour to create an event there.
-- **Create, edit, delete events**: title, start and end time, and one of eight colours, with validation.
+- **Create, edit, delete events**: title, optional description, date, start and end time, and one of eight colours. Moving an event to another day keeps its times, with validation.
 - **Real-time and offline**: changes appear instantly and sync when you're back online. Failed saves are reported, never silently lost.
 - **Private by design**: Firestore security rules allow each user to read and write only their own events.
 - **Biometric lock** (optional): fingerprint or face required to open a saved session. Turned on from Profile.
@@ -31,7 +31,7 @@ A personal calendar for Android built with React Native and Firebase. It has mon
 | Navigation | React Navigation 7 (bottom tabs) |
 | Backend | Firebase Authentication (email/password) and Cloud Firestore |
 | Device | `react-native-biometrics`, `react-native-keychain`, Material Design Icons |
-| Testing | Jest and React Native Testing Library (138 app tests), Firebase emulator (22 security rules tests) |
+| Testing | Jest and React Native Testing Library (153 app tests), Firebase emulator (22 security rules tests) |
 | CI | GitHub Actions: typecheck, lint and test on every PR |
 
 ## Architecture and key decisions

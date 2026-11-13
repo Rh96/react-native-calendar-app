@@ -3,6 +3,7 @@ import {
   isValidEventDateRange,
   validateEvent,
   isValidColor,
+  isValidEventDescription,
 } from '../../src/utils/validation';
 
 describe('isValidEventTitle', () => {
@@ -16,6 +17,19 @@ describe('isValidEventTitle', () => {
     expect(isValidEventTitle('a'.repeat(100))).toBe(true);
     expect(isValidEventTitle(`  ${'a'.repeat(100)}  `)).toBe(true);
     expect(isValidEventTitle('a'.repeat(101))).toBe(false);
+  });
+});
+
+describe('isValidEventDescription', () => {
+  it('accepts a missing or empty description', () => {
+    expect(isValidEventDescription(undefined)).toBe(true);
+    expect(isValidEventDescription('')).toBe(true);
+  });
+
+  it('accepts up to 1000 characters, counted after trimming', () => {
+    expect(isValidEventDescription('a'.repeat(1000))).toBe(true);
+    expect(isValidEventDescription(`\n ${'a'.repeat(1000)} \n`)).toBe(true);
+    expect(isValidEventDescription('a'.repeat(1001))).toBe(false);
   });
 });
 
@@ -45,6 +59,13 @@ describe('validateEvent', () => {
     expect(validateEvent({ ...valid, title: ' ', endDate: valid.startDate })).toEqual({
       isValid: false,
       error: 'Title must be between 1 and 100 characters',
+    });
+  });
+
+  it('reports a description over the limit', () => {
+    expect(validateEvent({ ...valid, description: 'a'.repeat(1001) })).toEqual({
+      isValid: false,
+      error: 'Description must be at most 1000 characters',
     });
   });
 

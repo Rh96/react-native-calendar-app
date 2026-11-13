@@ -13,6 +13,13 @@ export const isValidEventTitle = (title: string): boolean => {
 };
 
 /**
+ * Validates an optional description: at most the configured length after
+ * trimming (the app stores it trimmed). Empty or missing is fine.
+ */
+export const isValidEventDescription = (description?: string): boolean =>
+  (description ?? '').trim().length <= APP_CONFIG.MAX_EVENT_DESCRIPTION_LENGTH;
+
+/**
  * Validates if end date is after start date
  */
 export const isValidEventDateRange = (
@@ -39,6 +46,13 @@ export const validateEvent = (
     return {
       isValid: false,
       error: 'End time must be after start time',
+    };
+  }
+
+  if (!isValidEventDescription(event.description)) {
+    return {
+      isValid: false,
+      error: `Description must be at most ${APP_CONFIG.MAX_EVENT_DESCRIPTION_LENGTH} characters`,
     };
   }
 

@@ -122,10 +122,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }
           <TouchableOpacity
             style={[
               styles.button,
-              {
-                backgroundColor: theme.colors.primary,
-                opacity: submitting ? 0.6 : 1,
-              },
+              { backgroundColor: theme.colors.primary },
+              submitting && styles.buttonDisabled,
             ]}
             onPress={handleLogin}
             disabled={submitting}
@@ -215,6 +213,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     fontSize: 16,

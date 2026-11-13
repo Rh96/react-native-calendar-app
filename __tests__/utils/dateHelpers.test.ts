@@ -8,6 +8,7 @@ import {
   getEventsForDay,
   isSameDay,
   formatHour,
+  moveToDay,
 } from '../../src/utils/dateHelpers';
 import type { CalendarEvent } from '../../src/types';
 
@@ -155,5 +156,44 @@ describe('addHours', () => {
   it('adds and subtracts hours across a day boundary', () => {
     expect(addHours(new Date(2026, 10, 12, 23, 0), 2)).toEqual(new Date(2026, 10, 13, 1, 0));
     expect(addHours(new Date(2026, 10, 12, 0, 30), -1)).toEqual(new Date(2026, 10, 11, 23, 30));
+  });
+});
+
+describe('moveToDay', () => {
+  const dec3 = new Date(2026, 11, 3);
+
+  it('moves start and end to the new day, keeping their times', () => {
+    expect(
+      moveToDay(new Date(2026, 10, 13, 10, 0), new Date(2026, 10, 13, 11, 15), dec3),
+    ).toEqual({ start: new Date(2026, 11, 3, 10, 0), end: new Date(2026, 11, 3, 11, 15) });
+  });
+
+  it('moves to an earlier day as well as a later one', () => {
+    expect(
+      moveToDay(new Date(2026, 10, 13, 10, 0), new Date(2026, 10, 13, 11, 0), new Date(2026, 9, 30)),
+    ).toEqual({ start: new Date(2026, 9, 30, 10, 0), end: new Date(2026, 9, 30, 11, 0) });
+  });
+
+  it('keeps an end that falls on the next day one day after the start', () => {
+    expect(
+      moveToDay(new Date(2026, 10, 13, 23, 30), new Date(2026, 10, 14, 0, 30), dec3),
+    ).toEqual({ start: new Date(2026, 11, 3, 23, 30), end: new Date(2026, 11, 4, 0, 30) });
+  });
+
+  it('ignores the time of day of the picked date', () => {
+    expect(
+      moveToDay(new Date(2026, 10, 13, 10, 0), new Date(2026, 10, 13, 11, 0), new Date(2026, 11, 3, 17, 45)),
+    ).toEqual({ start: new Date(2026, 11, 3, 10, 0), end: new Date(2026, 11, 3, 11, 0) });
+  });
+
+  it('keeps wall-clock times on a daylight-saving day, not the duration in ms', () => {
+    // Berlin skips 02:00–03:00 on 29 Mar 2026. 01:30–03:30 is 2 h on the 28th
+    // but 1 h on the 29th; the clock times are what the user chose.
+    const moved = moveToDay(
+      new Date(2026, 2, 28, 1, 30),
+      new Date(2026, 2, 28, 3, 30),
+      new Date(2026, 2, 29),
+    );
+    expect(moved).toEqual({ start: new Date(2026, 2, 29, 1, 30), end: new Date(2026, 2, 29, 3, 30) });
   });
 });

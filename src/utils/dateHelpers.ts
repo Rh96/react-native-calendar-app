@@ -201,6 +201,36 @@ export const addHours = (date: Date, hours: number): Date => {
   return newDate;
 };
 
+/** `time`'s hours and minutes placed on `day`'s calendar date (seconds dropped). */
+export const atTimeOn = (day: Date, time: Date): Date => {
+  const result = new Date(day);
+  result.setHours(time.getHours(), time.getMinutes(), 0, 0);
+  return result;
+};
+
+/** Whole calendar days from `from` to `to`, ignoring time of day. */
+const calendarDaysBetween = (from: Date, to: Date): number => {
+  const fromDay = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const toDay = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  // Round: a day across a DST change is 23 or 25 hours long
+  return Math.round((toDay.getTime() - fromDay.getTime()) / 86_400_000);
+};
+
+/**
+ * Moves an event to `day`, keeping its wall-clock start and end times.
+ * An end that fell on a later day than the start (e.g. 23:30 → 00:30) keeps
+ * that offset. Wall-clock, not a fixed duration in ms, so a 10:00–11:00 event
+ * stays 10:00–11:00 on a daylight-saving day.
+ */
+export const moveToDay = (
+  start: Date,
+  end: Date,
+  day: Date,
+): { start: Date; end: Date } => ({
+  start: atTimeOn(day, start),
+  end: atTimeOn(addDays(day, calendarDaysBetween(start, end)), end),
+});
+
 /**
  * Default start for a new event on `day`: the next full hour after `now`
  * (e.g. 14:30 → 15:00), capped at 23:00 so it never spills into the next day.

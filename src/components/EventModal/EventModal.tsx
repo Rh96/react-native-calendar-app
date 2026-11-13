@@ -11,11 +11,11 @@ import {
 import { CalendarEvent } from '../../types';
 import { useTheme } from '../../theme';
 import { validateEvent } from '../../utils/validation';
-import { formatDateOnly, addHours } from '../../utils/dateHelpers';
+import { addHours, atTimeOn, moveToDay } from '../../utils/dateHelpers';
 import { EVENT_COLORS } from '../../constants/colors';
 import { APP_CONFIG } from '../../constants/config';
 import { ColorPicker } from './ColorPicker';
-import { TimePicker } from './TimePicker';
+import { DateTimeField } from './DateTimeField';
 import { styles } from './EventModal.styles';
 
 /**
@@ -35,13 +35,6 @@ interface EventModalProps {
   onDelete?: () => void;
 }
 
-/** `time`'s hours and minutes placed on `day`'s calendar date. */
-const atTimeOn = (day: Date, time: Date): Date => {
-  const result = new Date(day);
-  result.setHours(time.getHours(), time.getMinutes(), 0, 0);
-  return result;
-};
-
 export const EventModal = memo<EventModalProps>(({
   visible,
   target,
@@ -51,13 +44,15 @@ export const EventModal = memo<EventModalProps>(({
 }) => {
   const theme = useTheme();
   const isEdit = target.mode === 'edit';
-  // The calendar day this event is on. The modal only edits times, never the date.
-  const day = target.mode === 'edit' ? target.event.startDate : target.start;
+  const initialStart = target.mode === 'edit' ? target.event.startDate : target.start;
 
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState<string>(EVENT_COLORS[0]);
-  const [startDate, setStartDate] = useState(() => new Date(day));
-  const [endDate, setEndDate] = useState(() => new Date(day));
+  // The event's day is startDate's date. It changes only through the date
+  // field, never because another day was tapped in the calendar.
+  const [startDate, setStartDate] = useState(() => new Date(initialStart));
+  const [endDate, setEndDate] = useState(() => new Date(initialStart));
 
   // Re-initialise the form every time the modal opens.
   useEffect(() => {
@@ -66,11 +61,13 @@ export const EventModal = memo<EventModalProps>(({
     }
     if (target.mode === 'edit') {
       setTitle(target.event.title);
+      setDescription(target.event.description ?? '');
       setSelectedColor(target.event.color);
       setStartDate(new Date(target.event.startDate));
       setEndDate(new Date(target.event.endDate));
     } else {
       setTitle('');
+      setDescription('');
       setSelectedColor(EVENT_COLORS[0]);
       setStartDate(new Date(target.start));
       setEndDate(addHours(target.start, APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS));
@@ -80,6 +77,9 @@ export const EventModal = memo<EventModalProps>(({
   const handleSave = useCallback(() => {
     const eventData: Omit<CalendarEvent, 'id'> = {
       title: title.trim(),
+      // Always sent, even empty: eventsApi only writes keys that are present,
+      // so leaving it out would keep an old description the user cleared.
+      description: description.trim(),
       startDate,
       endDate,
       color: selectedColor,
@@ -93,7 +93,7 @@ export const EventModal = memo<EventModalProps>(({
 
     onSave(eventData);
     onClose();
-  }, [title, startDate, endDate, selectedColor, onSave, onClose]);
+  }, [title, description, startDate, endDate, selectedColor, onSave, onClose]);
 
   const handleDeletePress = useCallback(() => {
     Alert.alert(
@@ -113,24 +113,30 @@ export const EventModal = memo<EventModalProps>(({
     );
   }, [onDelete, onClose]);
 
+  const handleDateChange = useCallback((picked: Date) => {
+    const moved = moveToDay(startDate, endDate, picked);
+    setStartDate(moved.start);
+    setEndDate(moved.end);
+  }, [startDate, endDate]);
+
   const handleStartTimeChange = useCallback((time: Date) => {
-    const newStart = atTimeOn(day, time);
+    const newStart = atTimeOn(startDate, time);
     setStartDate(newStart);
 
     // Keep the event at least the default duration long if start passes end
     if (newStart >= endDate) {
       setEndDate(addHours(newStart, APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS));
     }
-  }, [day, endDate]);
+  }, [startDate, endDate]);
 
   const handleEndTimeChange = useCallback((time: Date) => {
-    const newEnd = atTimeOn(day, time);
+    const newEnd = atTimeOn(startDate, time);
     setEndDate(newEnd);
 
     if (newEnd <= startDate) {
       setStartDate(addHours(newEnd, -APP_CONFIG.DEFAULT_EVENT_DURATION_HOURS));
     }
-  }, [day, startDate]);
+  }, [startDate]);
 
   return (
     <Modal
@@ -175,32 +181,47 @@ export const EventModal = memo<EventModalProps>(({
               />
             </View>
 
-            {/* Date Display - Read Only */}
             <View style={styles.section}>
               <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
-                Date
+                Description
               </Text>
-              <View
+              <TextInput
                 style={[
-                  styles.dateDisplay,
-                  { backgroundColor: theme.colors.surfaceSecondary },
-                ]}>
-                <Text style={[styles.dateDisplayText, { color: theme.colors.text }]}>
-                  {formatDateOnly(day)}
-                </Text>
-              </View>
+                  styles.input,
+                  styles.multilineInput,
+                  {
+                    backgroundColor: theme.colors.surfaceSecondary,
+                    color: theme.colors.text,
+                  },
+                ]}
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Optional"
+                multiline
+                maxLength={APP_CONFIG.MAX_EVENT_DESCRIPTION_LENGTH}
+                accessibilityLabel="Event description"
+                accessibilityHint={`Optional, up to ${APP_CONFIG.MAX_EVENT_DESCRIPTION_LENGTH} characters`}
+                placeholderTextColor={theme.colors.textTertiary}
+              />
             </View>
 
-            {/* Start Time */}
-            <TimePicker
+            <DateTimeField
+              label="Date"
+              mode="date"
+              value={startDate}
+              onChange={handleDateChange}
+            />
+
+            <DateTimeField
               label="Start Time"
+              mode="time"
               value={startDate}
               onChange={handleStartTimeChange}
             />
 
-            {/* End Time */}
-            <TimePicker
+            <DateTimeField
               label="End Time"
+              mode="time"
               value={endDate}
               onChange={handleEndTimeChange}
             />

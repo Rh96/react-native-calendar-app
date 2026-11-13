@@ -12,6 +12,7 @@ export const APP_CONFIG = {
   DEFAULT_EVENT_DURATION_HOURS: 1,
   MIN_EVENT_TITLE_LENGTH: 1,
   MAX_EVENT_TITLE_LENGTH: 100,
+  MAX_EVENT_DESCRIPTION_LENGTH: 1000, // same limit as firestore.rules
   
   // Time configuration
   HOURS_PER_DAY: 24,

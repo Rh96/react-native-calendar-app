@@ -73,10 +73,8 @@ export const ProfileScreen = memo(() => {
         <TouchableOpacity
           style={[
             styles.button,
-            {
-              backgroundColor: theme.colors.primary,
-              opacity: submitting ? 0.6 : 1,
-            },
+            { backgroundColor: theme.colors.primary },
+            submitting && styles.buttonDisabled,
           ]}
           onPress={handleLogout}
           disabled={submitting}
@@ -151,6 +149,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     fontSize: 16,

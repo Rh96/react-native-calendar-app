@@ -32,13 +32,9 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 16,
   },
-  dateDisplay: {
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  dateDisplayText: {
-    fontSize: 16,
+  multilineInput: {
+    minHeight: 88,
+    textAlignVertical: 'top', // Android centres multiline text by default
   },
   buttons: {
     flexDirection: 'row',
