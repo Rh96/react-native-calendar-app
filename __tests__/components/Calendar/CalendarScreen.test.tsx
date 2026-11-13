@@ -4,6 +4,7 @@ import { CalendarScreen } from '../../../src/components/Calendar/CalendarScreen'
 import { ThemeProvider } from '../../../src/theme';
 import { useEvents } from '../../../src/hooks/useEvents';
 import type { CalendarEvent } from '../../../src/types';
+import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 jest.mock('../../../src/hooks/useEvents');
 jest.mock('../../../src/contexts/AuthContext', () => ({
@@ -25,6 +26,29 @@ const addEvent = jest.fn(() => Promise.resolve('new-id'));
 const updateEvent = jest.fn(() => Promise.resolve());
 const deleteEvent = jest.fn(() => Promise.resolve());
 
+/** What the native picker passes to onChange when the user confirms `date`. */
+const pickerSet = (date: Date): [DateTimePickerEvent, Date] => [
+  { type: 'set', nativeEvent: { timestamp: date.getTime(), utcOffset: 0 } },
+  date,
+];
+
+/** Opens the event form's date field and confirms `date` in the picker. */
+const pickDate = (currentLabel: string, date: Date) => {
+  fireEvent.press(screen.getByRole('button', { name: `Date, ${currentLabel}` }));
+  fireEvent(screen.getByTestId('date-picker'), 'change', ...pickerSet(date));
+};
+
+const mockEvents = (events: CalendarEvent[]) =>
+  jest.mocked(useEvents).mockReturnValue({
+    events,
+    loading: false,
+    error: null,
+    retry: jest.fn(),
+    addEvent,
+    updateEvent,
+    deleteEvent,
+  });
+
 const renderScreen = () =>
   render(
     <ThemeProvider>
@@ -37,15 +61,7 @@ describe('CalendarScreen event modal', () => {
     jest.useFakeTimers();
     jest.setSystemTime(NOW);
     jest.clearAllMocks();
-    jest.mocked(useEvents).mockReturnValue({
-      events: [eventOnNov13],
-      loading: false,
-      error: null,
-      retry: jest.fn(),
-      addEvent,
-      updateEvent,
-      deleteEvent,
-    });
+    mockEvents([eventOnNov13]);
   });
 
   afterEach(() => {
@@ -145,6 +161,129 @@ describe('CalendarScreen event modal', () => {
     );
   });
 
+  describe('moving an event to another day', () => {
+    it('moves an edited event to the picked day, keeping its times', () => {
+      renderScreen();
+
+      fireEvent.press(screen.getByRole('button', { name: 'Day' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Next day' }));
+      fireEvent.press(screen.getByRole('button', { name: /^Dentist,/ }));
+      // The Android picker returns the picked day at the field's current time
+      pickDate('Friday, November 13, 2026', new Date(2026, 10, 20, 10, 0));
+
+      expect(
+        screen.getByRole('button', { name: 'Date, Friday, November 20, 2026' }),
+      ).toBeOnTheScreen();
+      fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+      expect(updateEvent).toHaveBeenCalledWith(
+        'evt-1',
+        expect.objectContaining({
+          startDate: new Date(2026, 10, 20, 10, 0),
+          endDate: new Date(2026, 10, 20, 11, 0),
+        }),
+      );
+    });
+
+    it('creates a new event on the picked day instead of the selected one', () => {
+      renderScreen();
+
+      fireEvent.press(screen.getByRole('button', { name: 'Add event' }));
+      fireEvent.changeText(screen.getByLabelText('Event title'), 'Gym');
+      pickDate('Thursday, November 12, 2026', new Date(2026, 11, 3, 15, 0));
+      fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+      expect(addEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Gym',
+          startDate: new Date(2026, 11, 3, 15, 0),
+          endDate: new Date(2026, 11, 3, 16, 0),
+        }),
+      );
+    });
+
+    it('keeps the new day when a time is changed afterwards', () => {
+      renderScreen();
+
+      fireEvent.press(screen.getByRole('button', { name: 'Add event' }));
+      fireEvent.changeText(screen.getByLabelText('Event title'), 'Gym');
+      pickDate('Thursday, November 12, 2026', new Date(2026, 11, 3, 15, 0));
+      fireEvent.press(screen.getByRole('button', { name: /^Start Time,/ }));
+      // The time picker returns the field's date with the new time
+      fireEvent(screen.getByTestId('time-picker'), 'change', ...pickerSet(new Date(2026, 11, 3, 9, 0)));
+      fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+      expect(addEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          startDate: new Date(2026, 11, 3, 9, 0),
+          endDate: new Date(2026, 11, 3, 16, 0),
+        }),
+      );
+    });
+  });
+
+  describe('description', () => {
+    /** Opens the Nov 13 event in the day view. */
+    const openDentist = () => {
+      fireEvent.press(screen.getByRole('button', { name: 'Day' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Next day' }));
+      fireEvent.press(screen.getByRole('button', { name: /^Dentist,/ }));
+    };
+
+    it('saves a new event’s description without surrounding whitespace', () => {
+      renderScreen();
+
+      fireEvent.press(screen.getByRole('button', { name: 'Add event' }));
+      fireEvent.changeText(screen.getByLabelText('Event title'), 'Gym');
+      fireEvent.changeText(screen.getByLabelText('Event description'), '  Bring the gym bag\n');
+      fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+      expect(addEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Gym', description: 'Bring the gym bag' }),
+      );
+    });
+
+    it('shows an existing description when editing and saves the change', () => {
+      mockEvents([{ ...eventOnNov13, description: 'Bring X-rays' }]);
+      renderScreen();
+      openDentist();
+
+      const input = screen.getByLabelText('Event description');
+      expect(input).toHaveDisplayValue('Bring X-rays');
+      fireEvent.changeText(input, 'Bring X-rays and insurance card');
+      fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+      expect(updateEvent).toHaveBeenCalledWith(
+        'evt-1',
+        expect.objectContaining({ description: 'Bring X-rays and insurance card' }),
+      );
+    });
+
+    it('sends an empty description when one is cleared, so the old one is removed', () => {
+      mockEvents([{ ...eventOnNov13, description: 'Bring X-rays' }]);
+      renderScreen();
+      openDentist();
+
+      fireEvent.changeText(screen.getByLabelText('Event description'), '   ');
+      fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+      expect(updateEvent).toHaveBeenCalledWith(
+        'evt-1',
+        expect.objectContaining({ description: '' }),
+      );
+    });
+
+    it('starts empty for a new event after editing one with a description', () => {
+      mockEvents([{ ...eventOnNov13, description: 'Bring X-rays' }]);
+      renderScreen();
+      openDentist();
+      fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+
+      fireEvent.press(screen.getByRole('button', { name: 'Add event' }));
+      expect(screen.getByLabelText('Event description')).toHaveDisplayValue('');
+    });
+  });
+
   describe('accessibility', () => {
     it('labels month navigation and day cells with date, today, event count and selection', () => {
       renderScreen();
@@ -183,6 +322,10 @@ describe('CalendarScreen event modal', () => {
 
       expect(screen.getByRole('header', { name: 'New Event' })).toBeOnTheScreen();
       expect(screen.getByLabelText('Event title')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Event description')).toBeOnTheScreen();
+      expect(
+        screen.getByRole('button', { name: 'Date, Thursday, November 12, 2026' }),
+      ).toBeOnTheScreen();
       expect(screen.getByRole('button', { name: /^Start Time, 3:00\sPM$/ })).toBeOnTheScreen();
       expect(screen.getByRole('button', { name: /^End Time, 4:00\sPM$/ })).toBeOnTheScreen();
 
