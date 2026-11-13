@@ -3,7 +3,8 @@
  * Only the native modules are mocked (see __tests__/setup.ts).
  */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, act } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 import App from '../App';
 import {
   setMockCurrentUser,
@@ -24,6 +25,15 @@ const lockEnabledFor = (...uids: string[]) =>
         : false,
     ),
   );
+
+/** Sends an AppState change to every listener in the app. */
+const moveAppTo = (state: AppStateStatus) =>
+  act(async () => {
+    jest
+      .mocked(AppState.addEventListener)
+      .mock.calls.filter(([type]) => type === 'change')
+      .forEach(([, handler]) => handler(state));
+  });
 
 describe('App biometric lock', () => {
   beforeEach(() => {
@@ -96,7 +106,7 @@ describe('App biometric lock', () => {
     expect(biometrics.simplePrompt).not.toHaveBeenCalled();
   });
 
-  it('never locks after signing in with a password in this launch', async () => {
+  it('does not ask for biometrics right after a password sign-in', async () => {
     lockEnabledFor('test-user-id');
 
     render(<App />);
@@ -106,5 +116,33 @@ describe('App biometric lock', () => {
 
     expect(await screen.findByRole('button', { name: 'Add event' })).toBeOnTheScreen();
     expect(biometrics.simplePrompt).not.toHaveBeenCalled();
+  });
+
+  it('locks again after more than a minute in the background, and unlocks', async () => {
+    setMockCurrentUser(restoredUser);
+    lockEnabledFor('test-user-id');
+    biometrics.simplePrompt.mockResolvedValueOnce({ success: true }); // at launch
+    let now = 1_000_000;
+    const dateNow = jest.spyOn(Date, 'now').mockImplementation(() => now);
+
+    try {
+      render(<App />);
+      expect(await screen.findByRole('button', { name: 'Add event' })).toBeOnTheScreen();
+
+      await moveAppTo('background');
+      now += 2 * 60_000;
+      await moveAppTo('active');
+
+      // Locked straight away, and the prompt opens by itself (cancelled here)
+      expect(screen.getByRole('header', { name: 'Calendar locked' })).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Add event' })).not.toBeOnTheScreen();
+      expect(biometrics.simplePrompt).toHaveBeenCalledTimes(2);
+
+      biometrics.simplePrompt.mockResolvedValueOnce({ success: true });
+      fireEvent.press(await screen.findByRole('button', { name: 'Unlock' }));
+      expect(await screen.findByRole('button', { name: 'Add event' })).toBeOnTheScreen();
+    } finally {
+      dateNow.mockRestore();
+    }
   });
 });

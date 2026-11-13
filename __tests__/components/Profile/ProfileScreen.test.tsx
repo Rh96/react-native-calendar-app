@@ -43,7 +43,7 @@ describe('ProfileScreen biometric lock setting', () => {
     renderProfile();
 
     expect(await lockSwitch()).not.toBeChecked();
-    expect(screen.getByText('Ask for your fingerprint or face when the app opens.')).toBeOnTheScreen();
+    expect(screen.getByText('Ask for your fingerprint or face when the app opens and after a minute away.')).toBeOnTheScreen();
   });
 
   it('turns the lock on after confirming with biometrics', async () => {

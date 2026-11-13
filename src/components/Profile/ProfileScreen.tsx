@@ -42,7 +42,7 @@ export const ProfileScreen = memo(() => {
             </Text>
             <Text style={[styles.settingHelp, { color: theme.colors.textSecondary }]}>
               {lock.available || lock.enabled
-                ? 'Ask for your fingerprint or face when the app opens.'
+                ? 'Ask for your fingerprint or face when the app opens and after a minute away.'
                 : "Set up fingerprint or face unlock in your phone's settings to use this."}
             </Text>
           </View>
